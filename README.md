@@ -8,14 +8,14 @@ Selective Connection is composed of Linux-side and Android-side programs.
 It is tested on Raspberry Pi 3 running Raspbian Jessie(2016.11 Version).
 ```
 $ git clone https://github.com/SKKU-ESLAB/selective-connection.git
-$ cd selective-connection
+$ cd selective-connection/linux
 $ make
 ```
 
 ## Android-side
 Import the project from ```android``` directory and build it.
 
-It is tested on Pixel 1 running Android 7.1
+It is tested on Pixel 1 running Android 7.1.
 
 ## Pre-requisite for Linux-side
 Raspbian that will run Linux-side program requires some prerequisite libraries.
