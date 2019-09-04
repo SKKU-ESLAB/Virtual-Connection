@@ -112,7 +112,7 @@ void NetworkMonitorThread::check_and_decide_switching(Stats &stats) {
   SwitchBehavior behavior = SwitchBehavior::kNoBehavior;
   bool is_increasable = this->is_increaseable();
   bool is_decreasable = this->is_decreaseable();
-  behavior = policy->decide(stats, is_increasable, is_decreasable);
+  behavior = policy->decide_switch(stats, is_increasable, is_decreasable);
 
   Core *core = Core::singleton();
   int prev_index = core->get_active_adapter_index();

@@ -36,9 +36,6 @@ public:
     this->mRequestSpeedDecCount = 0;
     this->mEnergyRetain = 0.0f;
     this->mEnergySwitch = 0.0f;
-    this->mFirstAppLaunched = false;
-    this->mRecentAppLaunchTSSec = 0;
-    this->mRecentAppLaunchTSUsec = 0;
     this->mTrafficPredictionTable.initialize();
   }
   virtual std::string get_stats_string(void);
@@ -55,12 +52,6 @@ private:
 
   float mEnergyRetain;
   float mEnergySwitch;
-
-  bool mFirstAppLaunched;
-  struct timeval mFirstAppLaunchTS;
-  struct timeval mRecentAppLaunchTS;
-  int mRecentAppLaunchTSSec;
-  int mRecentAppLaunchTSUsec;
 
   AppAwareTPT mTrafficPredictionTable;
 }; /* class NMPolicyAppAware */

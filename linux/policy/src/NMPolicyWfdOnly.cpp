@@ -26,8 +26,7 @@ using namespace sc;
 
 std::string NMPolicyWfdOnly::get_stats_string(void) {
   char stats_cstr[256];
-  snprintf(stats_cstr, 256, "WFD-only - %3d.%06d", this->mRecentAppLaunchTSSec,
-           this->mRecentAppLaunchTSUsec);
+  snprintf(stats_cstr, 256, "WFD-only");
   std::string stats_string(stats_cstr);
   return stats_string;
 }
@@ -36,23 +35,6 @@ void NMPolicyWfdOnly::on_custom_event(std::string &event_description) {
   if (!event_description.empty()) {
     this->mIsAppStarted = true;
   }
-
-  // Update app launch timestamp
-  gettimeofday(&this->mRecentAppLaunchTS, NULL);
-  if (!this->mFirstAppLaunched) {
-    this->mFirstAppLaunched = true;
-    this->mFirstAppLaunchTS.tv_sec = this->mRecentAppLaunchTS.tv_sec;
-    this->mFirstAppLaunchTS.tv_usec = this->mRecentAppLaunchTS.tv_usec;
-  }
-
-  long long recent_app_launch_ts =
-      ((long long)this->mRecentAppLaunchTS.tv_sec * (1000 * 1000) +
-       (long long)this->mRecentAppLaunchTS.tv_usec) -
-      ((long long)this->mFirstAppLaunchTS.tv_sec * (1000 * 1000) +
-       (long long)this->mFirstAppLaunchTS.tv_usec);
-  this->mRecentAppLaunchTSSec = (int)(recent_app_launch_ts / (1000 * 1000));
-  this->mRecentAppLaunchTSUsec = (int)(recent_app_launch_ts % (1000 * 1000));
-
   return;
 }
 

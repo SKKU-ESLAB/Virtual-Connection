@@ -27,7 +27,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <limits>
-#include <sys/time.h>
 
 // #define PRINT_EVERY_ENERGY_COMPARISON 1
 
@@ -35,10 +34,9 @@ using namespace sc;
 
 std::string NMPolicyAppAware::get_stats_string(void) {
   char stats_cstr[256];
-  snprintf(stats_cstr, 256, "\"%s\": %d vs. %d - %3d.%06d (%d/%d)",
+  snprintf(stats_cstr, 256, "\"%s\": %d vs. %d - (%d/%d)",
            this->mPresentAppName.c_str(), (int)this->mEnergyRetain,
-           (int)this->mEnergySwitch, this->mRecentAppLaunchTSSec,
-           this->mRecentAppLaunchTSUsec, this->mRequestSpeedIncCount,
+           (int)this->mEnergySwitch, this->mRequestSpeedIncCount,
            this->mRequestSpeedDecCount);
 
   std::string stats_string(stats_cstr);
@@ -48,22 +46,6 @@ std::string NMPolicyAppAware::get_stats_string(void) {
 void NMPolicyAppAware::on_custom_event(std::string &event_description) {
   // change current app name (event_description = "app_name")
   this->mPresentAppName.assign(event_description);
-
-  // Update app launch timestamp
-  gettimeofday(&this->mRecentAppLaunchTS, NULL);
-  if (!this->mFirstAppLaunched) {
-    this->mFirstAppLaunched = true;
-    this->mFirstAppLaunchTS.tv_sec = this->mRecentAppLaunchTS.tv_sec;
-    this->mFirstAppLaunchTS.tv_usec = this->mRecentAppLaunchTS.tv_usec;
-  }
-
-  long long recent_app_launch_ts =
-      ((long long)this->mRecentAppLaunchTS.tv_sec * (1000 * 1000) +
-       (long long)this->mRecentAppLaunchTS.tv_usec) -
-      ((long long)this->mFirstAppLaunchTS.tv_sec * (1000 * 1000) +
-       (long long)this->mFirstAppLaunchTS.tv_usec);
-  this->mRecentAppLaunchTSSec = (int)(recent_app_launch_ts / (1000 * 1000));
-  this->mRecentAppLaunchTSUsec = (int)(recent_app_launch_ts % (1000 * 1000));
 
   return;
 }
@@ -145,17 +127,6 @@ SwitchBehavior NMPolicyAppAware::decide(const Stats &stats, bool is_increasable,
     if (energy_bt < 0.0f || energy_bt_to_wfd < 0.0f) {
       return kNoBehavior;
     } else if (energy_bt > energy_bt_to_wfd) {
-      struct timeval present_tv;
-      gettimeofday(&present_tv, NULL);
-      long long present_ts =
-          ((long long)present_tv.tv_sec * (1000 * 1000) +
-           (long long)present_tv.tv_usec) -
-          ((long long)this->mFirstAppLaunchTS.tv_sec * (1000 * 1000) +
-           (long long)this->mFirstAppLaunchTS.tv_usec);
-      int present_ts_sec = (int)(present_ts / (1000 * 1000));
-      int present_ts_usec = (int)(present_ts % (1000 * 1000));
-      LOG_IMP("Decision: WFD on %3d.%06d", present_ts_sec, present_ts_usec);
-
       return kIncreaseAdapter;
     } else {
       return kNoBehavior;
@@ -174,17 +145,6 @@ SwitchBehavior NMPolicyAppAware::decide(const Stats &stats, bool is_increasable,
     if (energy_wfd < 0.0f || energy_wfd_to_bt < 0.0f) {
       return kNoBehavior;
     } else if (energy_wfd > energy_wfd_to_bt) {
-      struct timeval present_tv;
-      gettimeofday(&present_tv, NULL);
-      long long present_ts =
-          ((long long)present_tv.tv_sec * (1000 * 1000) +
-           (long long)present_tv.tv_usec) -
-          ((long long)this->mFirstAppLaunchTS.tv_sec * (1000 * 1000) +
-           (long long)this->mFirstAppLaunchTS.tv_usec);
-      int present_ts_sec = (int)(present_ts / (1000 * 1000));
-      int present_ts_usec = (int)(present_ts % (1000 * 1000));
-      LOG_IMP("Decision: BT on %3d.%06d", present_ts_sec, present_ts_usec);
-
       return kDecreaseAdapter;
     } else {
       return kNoBehavior;

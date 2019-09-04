@@ -245,7 +245,7 @@ void TraceRunner::send_workload(std::string &packet_trace_filename,
       free(data_buffer);
     } else if (next_action == ACTION_CUSTOM_EVENT) {
       NMPolicy *policy = sc::get_nm_policy();
-      policy->on_custom_event(next_event_description);
+      policy->send_custom_event(next_event_description);
     }
     num_iters++;
   }
