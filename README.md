@@ -17,66 +17,11 @@ Import the project from ```android``` directory and build it.
 
 It is tested on Pixel 1 running Android 7.1.
 
-## Pre-requisite for Linux-side
-Raspbian that will run Linux-side program requires some prerequisite libraries.
+# Prerequisites
+On linux-side, it requires ```bluez``` library(```libbluetooth-dev```), ```wpa_supplicant```, ```wpa_cli``` and ```udhcpd```.
+For more details, refer to [this page](https://github.com/SKKU-ESLAB/selective-connection/issues/5)
 
-### Install Bluetooth Library
-```
-$ sudo apt-get install libbluetooth-dev
-```
-
-Since this project requires legacy IPC to communicate with Bluetooth service, you should execute Bluetooth service with legacy flag. You need to edit your systemd config file.
-```
-$ sudo vi /etc/systemd/system/dbus-org.bluez.service
-```
-
-```
-ExecStart=/usr/lib/bluetooth/bluetoothd --compat
-```
-
-```
-$ sudo systemctl daemon-reload
-$ sudo systemctl restart bluetooth
-$ sudo chmod 777 /var/run/sdp
-```
-
-### Edit wpa_supplicant Daemon's Config
-```
-$ sudo vi /etc/wpa_supplicant/wpa_supplicant.conf
-```
-
-```
-update_config=1
-driver_param=p2p_device=1
-```
-
-### Install udhcpd
-```
-$ sudo apt-get install udhcpd
-$ sudo touch /var/lib/misc/udhcpd.leases
-$ sudo wpa_supplicant -iwlan0 -c /etc/wpa_supplicant/wpa_supplicant.conf
-```
-
-# Notes
-## Bluetooth Issues
-### Check the bluetooth HCI interface
-```
-$ hciconfig -a
-```
-
-### Change hci0 interface to Scan Mode 
-Set page scan and inquiry can (Discoverable)
-```
-$ sudo hciconfig hci0 up piscan
-```
-
-## Wifi-Direct Issues
-### Check the wifi module support p2p
-```
-$ iw list
-```
-### Remove the P2P group (Wifi-direct) on the wifi interface
-remove group ```p2p-wlan0-0``` on the wifi interface ```wlan0```
-```
-sudo wpa_cli -i wlan0 p2p_group_remove p2p-wlan0-0
-```
+# Detailed Manuals
+* [How to install Prerequisites](https://github.com/SKKU-ESLAB/selective-connection/issues/5)
+* [How to address Bluetooth-related issues](https://github.com/SKKU-ESLAB/selective-connection/issues/2)
+* [How to address Wi-fi Direct-related issues](https://github.com/SKKU-ESLAB/selective-connection/issues/3)
