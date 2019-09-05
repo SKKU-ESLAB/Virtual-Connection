@@ -156,15 +156,14 @@ bool SwitchAdapterTransaction::run(int prev_index, int next_index) {
 void SwitchAdapterTransaction::done(bool is_success) {
   // SWITCH TIME: disconnect end
   this->setDisconnectEndTS();
-  uint64_t totalLatency = this->getTotalSwitchLatency();
-  uint64_t connectLatency = this->getConnectLatency();
-  uint64_t sleepLatency = this->getSleepLatency();
-  uint64_t disconnectLatency = this->getDisconnectLatency();
+  float totalLatency = ((float)this->getTotalSwitchLatency()) / 1000000.0f;
+  float connectLatency = ((float)this->getConnectLatency()) / 1000000.0f;
+  float sleepLatency = ((float)this->getSleepLatency()) / 1000000.0f;
+  float disconnectLatency = ((float)this->getDisconnectLatency()) / 1000000.0f;
 
   char eventstr[256];
   if (is_success) {
-    snprintf(eventstr, 256,
-             "Switch (%d->%d): SUCCESS (%lluus = %lluus + %lluus + %lluus)\n",
+    snprintf(eventstr, 256, "Switch (%d->%d): SUCCESS (%fs = %f + %f + %f)\n",
              sOngoing->mPrevIndex, sOngoing->mNextIndex, totalLatency,
              connectLatency, sleepLatency, disconnectLatency);
     if (totalLatency < 15000000) {
@@ -172,20 +171,17 @@ void SwitchAdapterTransaction::done(bool is_success) {
     } else {
       LOG_ERR("%s", eventstr);
     }
-    snprintf(eventstr, 256,
-             "Switch (%d->%d): SUCCESS %llu %llu %llu %llu\n",
+    snprintf(eventstr, 256, "Switch (%d->%d): SUCCESS %f    %f %f %f\n",
              sOngoing->mPrevIndex, sOngoing->mNextIndex, totalLatency,
              connectLatency, sleepLatency, disconnectLatency);
     EventLogging::print_event(eventstr);
     Core::singleton()->set_active_adapter_index(sOngoing->mNextIndex);
   } else {
-    snprintf(eventstr, 256,
-             "Switch (%d->%d): FAILED (%lluus = %lluus + %lluus + %lluus)\n",
+    snprintf(eventstr, 256, "Switch (%d->%d): FAILED (%fs = %f + %f + %f)\n",
              sOngoing->mPrevIndex, sOngoing->mNextIndex, totalLatency,
              connectLatency, sleepLatency, disconnectLatency);
     LOG_ERR("%s", eventstr);
-    snprintf(eventstr, 256,
-             "Switch (%d->%d): FAILED %llu %llu %llu %llu\n",
+    snprintf(eventstr, 256, "Switch (%d->%d): FAILED %f    %f %f %f\n",
              sOngoing->mPrevIndex, sOngoing->mNextIndex, totalLatency,
              connectLatency, sleepLatency, disconnectLatency);
     EventLogging::print_event(eventstr);

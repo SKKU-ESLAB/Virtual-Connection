@@ -91,8 +91,10 @@ private:
     char eventstr[100] = {
         '\0',
     };
-    snprintf(eventstr, 100, "%3d.%06d / [Event] %s", recent_custom_event_ts_sec,
+    snprintf(eventstr, 100, "%3d.%06d [Event] %s", recent_custom_event_ts_sec,
              recent_custom_event_ts_usec, event_string.c_str());
+    EventLogging::print_event(eventstr);
+    printf("%s\n", eventstr);
   }
 
   void print_switch_decision(SwitchBehavior behavior) {
@@ -110,13 +112,14 @@ private:
           '\0',
       };
       if (behavior == kIncreaseAdapter) {
-        snprintf(eventstr, 100, "%3d.%06d / [Switch] WFD on", present_ts_sec,
+        snprintf(eventstr, 100, "%3d.%06d [Switch] WFD on", present_ts_sec,
                  present_ts_usec);
       } else if (behavior == kDecreaseAdapter) {
-        snprintf(eventstr, 100, "%3d.%06d / [Switch] BT on", present_ts_sec,
+        snprintf(eventstr, 100, "%3d.%06d [Switch] BT on", present_ts_sec,
                  present_ts_usec);
       }
       EventLogging::print_event(eventstr);
+      printf("%s\n", eventstr);
     }
   }
 

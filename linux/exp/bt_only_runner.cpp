@@ -37,8 +37,8 @@ int main(int argc, char **argv) {
 
   std::string packet_trace_filename("");
   std::string app_trace_filename("");
-  
-  if(argc == 1) {
+
+  if (argc == 1) {
     packet_trace_filename.assign("final-packet-trace.csv");
     app_trace_filename.assign("final-app-trace.csv");
   } else {
@@ -46,9 +46,9 @@ int main(int argc, char **argv) {
     app_trace_filename.assign(argv[2]);
   }
 
-  TraceRunner *trace_runner =
-      TraceRunner::trace_runner(packet_trace_filename, app_trace_filename);
-  
+  TraceRunner *trace_runner = TraceRunner::trace_runner(
+      packet_trace_filename, app_trace_filename, true);
+
   NMPolicyBtOnly *switch_policy = new NMPolicyBtOnly();
   trace_runner->start(switch_policy);
 
