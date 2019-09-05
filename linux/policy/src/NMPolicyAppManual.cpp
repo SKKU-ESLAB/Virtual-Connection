@@ -38,10 +38,10 @@ std::string NMPolicyAppManual::get_stats_string(void) {
 void NMPolicyAppManual::on_custom_event(std::string &event_description) {
   this->mPresentAppName.assign(event_description);
   if (event_description.compare("1-navermap") == 0 ||
-      event_description.compare("2-news") == 0 ||
-      event_description.compare("4-webbrowsing") == 0) {
+      event_description.compare("2-news") == 0) {
     this->mWFDMode = true;
   } else if (event_description.compare("3-remotecamera") == 0 ||
+             event_description.compare("4-webbrowsing") == 0 ||
              event_description.compare("5-svoice") == 0) {
     this->mWFDMode = false;
   } else {
