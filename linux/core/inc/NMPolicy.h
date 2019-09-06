@@ -123,7 +123,7 @@ private:
     }
   }
 
-private:
+protected:
   bool mIsFirstCustomEvent;
   struct timeval mFirstCustomEventTS;
   struct timeval mRecentCustomEventTS;

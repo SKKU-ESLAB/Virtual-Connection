@@ -31,7 +31,7 @@ class NMPolicyAppAware : public NMPolicy {
 public:
   NMPolicyAppAware(void) {
     this->mPresentAppName.assign("");
-    this->mLastRequestSpeed = 0.0f;
+    this->mLastBandwidth = 0.0f;
     this->mRequestSpeedIncCount = 0;
     this->mRequestSpeedDecCount = 0;
     this->mEnergyRetain = 0.0f;
@@ -46,7 +46,7 @@ public:
 private:
   std::string mPresentAppName;
 
-  float mLastRequestSpeed;
+  float mLastBandwidth;
   int mRequestSpeedIncCount;
   int mRequestSpeedDecCount;
 

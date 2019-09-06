@@ -26,14 +26,16 @@ namespace sc {
 
 class BWTrafficEntry {
 public:
-  BWTrafficEntry(float bandwidth, bool is_increase,
+  BWTrafficEntry(float time_sec, float bandwidth, bool is_increase,
                  std::vector<int> traffic_sequence) {
+    this->mTimeSec = time_sec;
     this->mBandwidth = bandwidth;
     this->mIsIncrease = is_increase;
     this->mTrafficSequence.assign(traffic_sequence.begin(),
                                   traffic_sequence.end());
   }
 
+  float getTimeSec() { return this->mTimeSec; }
   float getBandwidth() { return this->mBandwidth; }
   bool isIncrease() { return this->mIsIncrease; }
   std::vector<int> &getTrafficSequence() { return this->mTrafficSequence; }
@@ -42,6 +44,7 @@ public:
   }
 
 private:
+  float mTimeSec;
   float mBandwidth;
   bool mIsIncrease;
   std::vector<int> mTrafficSequence;

@@ -33,19 +33,20 @@ using namespace sc;
 class AppAwareTPTReader {
 public:
   void read_header(void) {
-    this->mCSVReader->read_header(io::ignore_extra_column, "AppName",
+    this->mCSVReader->read_header(io::ignore_extra_column, "AppName", "TimeSec",
                                   "Bandwidth", "IncFlag", "TrafficSequence");
   }
 
-  bool read_a_row(std::string &app_name, float &bandwidth, bool &is_increase,
-                  std::vector<int> &traffic_sequence) {
-    std::string bandwidth_str, inc_flag_str, traffic_sequence_str;
-    bool ret = this->mCSVReader->read_row(app_name, bandwidth_str, inc_flag_str,
-                                          traffic_sequence_str);
+  bool read_a_row(std::string &app_name, float &time_sec, float &bandwidth,
+                  bool &is_increase, std::vector<int> &traffic_sequence) {
+    std::string time_sec_str, bandwidth_str, inc_flag_str, traffic_sequence_str;
+    bool ret = this->mCSVReader->read_row(app_name, time_sec_str, bandwidth_str,
+                                          inc_flag_str, traffic_sequence_str);
     if (ret) {
-      LOG_VERB("ROW: %s / %s / %s / %s", app_name.c_str(),
-               bandwidth_str.c_str(), inc_flag_str.c_str(),
-               traffic_sequence_str.c_str());
+      LOG_VERB("ROW: %s / %s / %s / %s / %s", app_name.c_str(),
+               time_sec_str.c_str(), bandwidth_str.c_str(),
+               inc_flag_str.c_str(), traffic_sequence_str.c_str());
+      time_sec = std::stof(time_sec_str);
       bandwidth = std::stof(bandwidth_str);
       is_increase = (std::stoi(inc_flag_str) > 0) ? true : false;
 
@@ -62,12 +63,12 @@ public:
 
   AppAwareTPTReader(std::string filename) {
     this->mCSVReader =
-        new io::CSVReader<4, io::trim_chars<>,
+        new io::CSVReader<5, io::trim_chars<>,
                           io::double_quote_escape<',', '\"'>>(filename.c_str());
   }
 
 private:
-  io::CSVReader<4, io::trim_chars<>, io::double_quote_escape<',', '\"'>>
+  io::CSVReader<5, io::trim_chars<>, io::double_quote_escape<',', '\"'>>
       *mCSVReader;
 };
 
@@ -80,10 +81,10 @@ void AppAwareTPT::initialize(void) {
   int num_rows = 0;
   while (true) {
     std::string app_name;
-    float bandwidth;
+    float time_sec, bandwidth;
     bool is_increase;
     std::vector<int> traffic_sequence;
-    if (!reader.read_a_row(app_name, bandwidth, is_increase,
+    if (!reader.read_a_row(app_name, time_sec, bandwidth, is_increase,
                            traffic_sequence)) {
       break;
     }
@@ -95,7 +96,7 @@ void AppAwareTPT::initialize(void) {
       app_entry = this->getItem(app_name);
     }
 
-    BWTrafficEntry new_bw_traffic_entry(bandwidth, is_increase,
+    BWTrafficEntry new_bw_traffic_entry(time_sec, bandwidth, is_increase,
                                         traffic_sequence);
     app_entry->addItem(new_bw_traffic_entry);
     num_rows++;

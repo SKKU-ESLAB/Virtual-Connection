@@ -53,17 +53,17 @@ void NMPolicyAppAware::on_custom_event(std::string &event_description) {
 SwitchBehavior NMPolicyAppAware::decide(const Stats &stats, bool is_increasable,
                                         bool is_decreasable) {
   // Step 1. detect increasing/decreasing traffic in series
-  float request_speed =
+  float present_bandwidth =
       stats.ema_queue_arrival_speed + (float)stats.now_queue_data_size; // B/s
-  if (request_speed < this->mLastRequestSpeed ||
-      request_speed < IDLE_THRESHOLD) {
+  if (present_bandwidth < this->mLastBandwidth ||
+      present_bandwidth < IDLE_THRESHOLD) {
     this->mRequestSpeedDecCount++;
     this->mRequestSpeedIncCount = 0;
-  } else if (request_speed > this->mLastRequestSpeed) {
+  } else if (present_bandwidth > this->mLastBandwidth) {
     this->mRequestSpeedIncCount++;
     this->mRequestSpeedDecCount = 0;
   }
-  this->mLastRequestSpeed = request_speed;
+  this->mLastBandwidth = present_bandwidth;
 
   if (this->mRequestSpeedIncCount < INC_COUNT_THRESHOLD &&
       this->mRequestSpeedDecCount < DEC_COUNT_THRESHOLD) {
@@ -82,14 +82,25 @@ SwitchBehavior NMPolicyAppAware::decide(const Stats &stats, bool is_increasable,
     return kNoBehavior;
   }
 
-  // Step 3. select most proper traffic history (nearest bandwidth)
+  // Step 3. select most proper traffic history
+  //         (nearest bandwidth, elapsed time)
   BWTrafficEntry *most_proper_traffic = NULL;
+  struct timeval present_time;
+  gettimeofday(&present_time, NULL);
+  long long presentTimeUS =
+      (long long)present_time.tv_sec * 1000 * 1000 + present_time.tv_usec;
+  long long recentCustomEventTSUS =
+      (long long)this->mRecentCustomEventTS.tv_sec * 1000 * 1000 +
+      this->mRecentCustomEventTS.tv_usec;
+  float present_time_sec =
+      (float)(presentTimeUS - recentCustomEventTSUS) / 1000000.0f;
   float min_diff = std::numeric_limits<float>::max();
   std::vector<BWTrafficEntry> &bwTrafficList = appEntry->getList();
   for (std::vector<BWTrafficEntry>::iterator it = bwTrafficList.begin();
        it != bwTrafficList.end(); it++) {
     BWTrafficEntry &bw_traffic = *it;
-    float bandwidth = bw_traffic.getBandwidth(); // B/s
+    float key_time_sec = bw_traffic.getTimeSec();    // sec
+    float key_bandwidth = bw_traffic.getBandwidth(); // B/s
 
     if (this->mRequestSpeedDecCount >= DEC_COUNT_THRESHOLD &&
         bw_traffic.isIncrease()) {
@@ -99,7 +110,9 @@ SwitchBehavior NMPolicyAppAware::decide(const Stats &stats, bool is_increasable,
       continue;
     }
 
-    float newDiff = std::abs(bandwidth - request_speed);
+    float newDiff =
+        (std::abs(key_bandwidth - present_bandwidth) / present_bandwidth) *
+        (std::abs(key_time_sec - present_time_sec) / present_time_sec);
     if (newDiff < min_diff) {
       min_diff = newDiff;
       most_proper_traffic = &(bw_traffic);
