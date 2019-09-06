@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-#define PREDICTION_WINDOW_SEC 15
+#define PREDICTION_WINDOW_SEC 30
 
 /* Switch scenario case */
 #define SCENARIO_BT 1
@@ -43,7 +43,7 @@
 #define LATENCY_WFD_TO_BT 6.8679f
 
 /* Measured maximum bandwidth (B/s) */
-#define MAX_BANDWIDTH_BT 200000.0f
+#define MAX_BANDWIDTH_BT 100000.0f
 #define MAX_BANDWIDTH_WFD 3500000.0f
 #define MAX_BANDWIDTH_BT_TO_WFD 200000.0f
 #define MAX_BANDWIDTH_WFD_TO_BT 3500000.0f

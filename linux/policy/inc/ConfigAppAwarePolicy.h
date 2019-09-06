@@ -23,7 +23,7 @@
 #define INC_COUNT_THRESHOLD 10
 #define DEC_COUNT_THRESHOLD 10
 
-#define IDLE_THRESHOLD 10 * 1000 // 10KB/s
+#define IDLE_THRESHOLD 5 * 1000 // 5KB/s
 
 #define APP_AWARE_TPT_FILENAME "app_aware_tpt.txt"
 

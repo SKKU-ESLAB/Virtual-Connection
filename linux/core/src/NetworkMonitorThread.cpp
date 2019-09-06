@@ -21,6 +21,7 @@
 
 #include "../inc/Core.h"
 #include "../inc/NetworkSwitcher.h"
+#include "../inc/SegmentManager.h"
 #include "../inc/Stats.h"
 
 #include "../../configs/ExpConfig.h"
@@ -46,6 +47,10 @@ void NetworkMonitorThread::stop(void) { this->mMonitorThreadOn = false; }
 void NetworkMonitorThread::monitor_thread(void) {
   int count = 0;
   while (this->mMonitorThreadOn) {
+    // Update segmenet manager's stats
+    SegmentManager *sm = SegmentManager::singleton();
+    sm->update_queue_arrival_speed();
+
     // Get statistics
     Stats stats;
     stats.acquire_values();
@@ -73,7 +78,7 @@ void NetworkMonitorThread::print_stats(Stats &stats) {
   }
 
   this->mPrintCount++;
-  if(this->mPrintCount == 10) {
+  if (this->mPrintCount == 10) {
     this->mPrintCount = 0;
   } else {
     return;
@@ -128,17 +133,17 @@ void NetworkMonitorThread::check_and_decide_switching(Stats &stats) {
     break;
   }
   case SwitchBehavior::kPrepareIncreaseAdapter:
-  // After using USB Bluetooth, thresholding is no more required.
-  // if(this->is_increasable()) {
-  //   core->prepare_switch(prev_index, next_index);
-  // }
-  // break;
+    // After using USB Bluetooth, thresholding is no more required.
+    // if(this->is_increasable()) {
+    //   core->prepare_switch(prev_index, next_index);
+    // }
+    break;
   case SwitchBehavior::kPrepareDecreaseAdapter: {
     // After using USB Bluetooth, thresholding is no more required.
     // if(this->is_decreasable()) {
     //   core->prepare_switch(prev_index, next_index);
     // }
-    // break;
+    break;
   }
   case SwitchBehavior::kCancelPrepareSwitchAdapter: {
     core->cancel_preparing_switch(prev_index, next_index);

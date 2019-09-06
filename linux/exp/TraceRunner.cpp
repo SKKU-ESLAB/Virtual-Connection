@@ -107,6 +107,8 @@ void TraceRunner::on_start_sc(bool is_success) {
   printf("\e[49;41m ** Start Workload\e[0m\n");
   self->send_workload(self->mPacketTraceFilename, self->mEventTraceFilename,
                       self->mIsWaitPacketsOfPrevEvent);
+  NMPolicy *policy = sc::get_nm_policy();
+  policy->send_custom_event("");
   printf("\e[49;41m ** Finish Workload...\e[0m\n");
 
   char eventstr[200];
@@ -273,8 +275,6 @@ void TraceRunner::send_workload(std::string &packet_trace_filename,
     }
     num_iters++;
   }
-  NMPolicy *policy = sc::get_nm_policy();
-  policy->send_custom_event("");
 }
 
 int TraceRunner::sleep_workload(int next_ts_us) {

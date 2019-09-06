@@ -69,30 +69,30 @@ protected:
 
 private:
   void print_custom_event(std::string &event_string) {
-    // Update app launch timestamp
-    struct timeval recent_custom_event_ts;
-    gettimeofday(&recent_custom_event_ts, NULL);
+    // Update recent custom event timestamp
+    gettimeofday(&this->mRecentCustomEventTS, NULL);
     if (!this->mIsFirstCustomEvent) {
       this->mIsFirstCustomEvent = true;
-      this->mFirstCustomEventTS.tv_sec = recent_custom_event_ts.tv_sec;
-      this->mFirstCustomEventTS.tv_usec = recent_custom_event_ts.tv_usec;
+      this->mFirstCustomEventTS.tv_sec = this->mRecentCustomEventTS.tv_sec;
+      this->mFirstCustomEventTS.tv_usec = this->mRecentCustomEventTS.tv_usec;
     }
 
-    long long recent_app_launch_ts =
-        ((long long)recent_custom_event_ts.tv_sec * (1000 * 1000) +
-         (long long)recent_custom_event_ts.tv_usec) -
+    long long relative_recent_custom_event_ts_us =
+        ((long long)this->mRecentCustomEventTS.tv_sec * (1000 * 1000) +
+         (long long)this->mRecentCustomEventTS.tv_usec) -
         ((long long)this->mFirstCustomEventTS.tv_sec * (1000 * 1000) +
          (long long)this->mFirstCustomEventTS.tv_usec);
-    int recent_custom_event_ts_sec =
-        (int)(recent_app_launch_ts / (1000 * 1000));
-    int recent_custom_event_ts_usec =
-        (int)(recent_app_launch_ts % (1000 * 1000));
+    int relative_recent_custom_event_ts_sec =
+        (int)(relative_recent_custom_event_ts_us / (1000 * 1000));
+    int relative_recent_custom_event_ts_usec =
+        (int)(relative_recent_custom_event_ts_us % (1000 * 1000));
 
     char eventstr[100] = {
         '\0',
     };
-    snprintf(eventstr, 100, "%3d.%06d [Event] %s", recent_custom_event_ts_sec,
-             recent_custom_event_ts_usec, event_string.c_str());
+    snprintf(eventstr, 100, "%3d.%06d [Event] %s",
+             relative_recent_custom_event_ts_sec,
+             relative_recent_custom_event_ts_usec, event_string.c_str());
     EventLogging::print_event(eventstr);
     printf("%s\n", eventstr);
   }

@@ -166,7 +166,7 @@ void SwitchAdapterTransaction::done(bool is_success) {
     snprintf(eventstr, 256, "Switch (%d->%d): SUCCESS (%fs = %f + %f + %f)\n",
              sOngoing->mPrevIndex, sOngoing->mNextIndex, totalLatency,
              connectLatency, sleepLatency, disconnectLatency);
-    if (totalLatency < 15000000) {
+    if (totalLatency < 15) {
       LOG_IMP("%s", eventstr);
     } else {
       LOG_ERR("%s", eventstr);

@@ -160,20 +160,49 @@ private:
   }
 
   int get_speed_locked() {
-    int startPointer = (this->mPrevValuePointer + 1) % PREV_VALUES_SIZE;
-    int endPointer = (this->mPrevValuePointer) % PREV_VALUES_SIZE;
+    struct timeval nowTStv;
+    gettimeofday(&nowTStv, NULL);
+    uint64_t nowTSus = (uint64_t)nowTStv.tv_sec * 1000 * 1000 + nowTStv.tv_usec;
 
-    int startValue = this->mPrevValues[startPointer];
-    int endValue = this->mPrevValues[endPointer];
-    uint64_t startTStv = this->mPrevValueTSs[startPointer];
-    uint64_t endTStv = this->mPrevValueTSs[endPointer];
+    // Circular queue boundary
+    int startCQIdx = (this->mPrevValuePointer + 1) % PREV_VALUES_SIZE;
+    int endCQIdx = (this->mPrevValuePointer) % PREV_VALUES_SIZE;
+
+    // Desired timestamps
+    uint64_t startDesiredTS = nowTSus - 1000 * 1000;
+    uint64_t endDesiredTS = nowTSus;
+
+    // Find speed window boundary's start point (within 1 sec)
+    int i = endCQIdx;
+    bool isPassOnce = false;
+    while (i == startCQIdx) {
+      uint64_t tsUs = this->mPrevValueTSs[i];
+      if (tsUs > endDesiredTS && tsUs < startDesiredTS) {
+        break;
+      }
+      isPassOnce = true;
+      i = (i - 1 >= 0) ? (i - 1) : (PREV_VALUES_SIZE - 1);
+    }
+    if (!isPassOnce) {
+      return 0;
+    }
+
+    // Speed window boundary
+    int startSWIdx = i;
+    int endSWIdx = endCQIdx;
+
+    uint64_t startTSus = this->mPrevValueTSs[startSWIdx];
+    uint64_t endTSus = this->mPrevValueTSs[endSWIdx];
+
+    int startValue = this->mPrevValues[startSWIdx];
+    int endValue = this->mPrevValues[endSWIdx];
 
     int speed;
-    if (endTStv == 0 || startTStv == 0) {
+    if (endTSus == 0 || startTSus == 0) {
       speed = 0;
     } else {
       speed = (int)(((float)(endValue - startValue)) /
-                    ((float)(endTStv - startTStv) / 1000000));
+                    ((float)(endTSus - startTSus) / 1000000));
     }
 
     return speed;

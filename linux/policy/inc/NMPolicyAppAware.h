@@ -31,12 +31,13 @@ class NMPolicyAppAware : public NMPolicy {
 public:
   NMPolicyAppAware(void) {
     this->mPresentAppName.assign("");
-    this->mLastBandwidth = 0.0f;
+    this->mLastMediaBandwidth = 0.0f;
     this->mRequestSpeedIncCount = 0;
     this->mRequestSpeedDecCount = 0;
     this->mEnergyRetain = 0.0f;
     this->mEnergySwitch = 0.0f;
     this->mTrafficPredictionTable.initialize();
+    this->mIsRecentWfdOn = false;
   }
   virtual std::string get_stats_string(void);
   virtual void on_custom_event(std::string &event_description);
@@ -46,12 +47,13 @@ public:
 private:
   std::string mPresentAppName;
 
-  float mLastBandwidth;
+  float mLastMediaBandwidth;
   int mRequestSpeedIncCount;
   int mRequestSpeedDecCount;
 
   float mEnergyRetain;
   float mEnergySwitch;
+  bool mIsRecentWfdOn;
 
   AppAwareTPT mTrafficPredictionTable;
 }; /* class NMPolicyAppAware */
