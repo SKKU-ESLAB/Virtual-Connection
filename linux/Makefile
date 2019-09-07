@@ -36,7 +36,7 @@ POLICY_OBJ=$(patsubst %, $(POLICY_OBJ_DIR)/%, $(_POLICY_OBJ))
 $(COMMON_OBJ_DIR)/%.o: $(COMMON_SRC_DIR)/%.cpp
 	$(CC) -o $@ -c $< $(FLAG) $(LIB)
 
-_COMMON_OBJ=ChildProcess.o DebugLog.o
+_COMMON_OBJ=ChildProcess.o DebugLog.o Counter.o
 COMMON_OBJ=$(patsubst %, $(COMMON_OBJ_DIR)/%, $(_COMMON_OBJ))
 
 $(DEV_OBJ_DIR)/%.o: $(DEV_SRC_DIR)/%.cpp
