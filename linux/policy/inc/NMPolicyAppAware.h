@@ -38,11 +38,19 @@ public:
     this->mEnergySwitch = 0.0f;
     this->mTrafficPredictionTable.initialize();
     this->mIsRecentWfdOn = false;
+
+    this->reset_recent_switch_ts();
   }
   virtual std::string get_stats_string(void);
   virtual void on_custom_event(std::string &event_description);
   virtual SwitchBehavior decide(const Stats &stats, bool is_increasable,
                                 bool is_decreasable);
+
+private:
+  SwitchBehavior decide_internal(const Stats &stats, bool is_increasable,
+                                 bool is_decreasable);
+  void update_recent_switch_ts(void);
+  void reset_recent_switch_ts(void);
 
 private:
   std::string mPresentAppName;
@@ -54,6 +62,8 @@ private:
   float mEnergyRetain;
   float mEnergySwitch;
   bool mIsRecentWfdOn;
+
+  struct timeval mRecentSwitchTS;
 
   AppAwareTPT mTrafficPredictionTable;
 }; /* class NMPolicyAppAware */

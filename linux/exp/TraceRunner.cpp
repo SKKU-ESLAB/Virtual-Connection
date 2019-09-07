@@ -90,9 +90,9 @@ void TraceRunner::on_start_sc(bool is_success) {
   EventLogging::print_event(buf);
 
   // Launch app receiving thread
-  self->mThread =
+  self->mReceivingThread =
       new std::thread(std::bind(&TraceRunner::receiving_thread, self));
-  self->mThread->detach();
+  self->mReceivingThread->detach();
 
   // 1. Send test data to warm-up the initial connection
   printf(" ** Send Test Data\n");
@@ -252,6 +252,11 @@ void TraceRunner::send_workload(std::string &packet_trace_filename,
       sc::send(data_buffer, next_packet_payload_length);
 
       free(data_buffer);
+
+      if (!this->mIsFirstPacketSent) {
+        this->mIsFirstPacketSent = true;
+        this->start_im_alive_thread();
+      }
     } else if (next_action == ACTION_CUSTOM_EVENT) {
       // Wait until every packets of the previous event are sent
       if (is_wait_packets_of_prev_event) {
@@ -308,6 +313,32 @@ void TraceRunner::receiving_thread(void) {
   }
 
   LOG_THREAD_FINISH("App Receiving");
+}
+
+void TraceRunner::start_im_alive_thread(void) {
+  this->mImAliveThread =
+      new std::thread(std::bind(&TraceRunner::im_alive_thread, this));
+  this->mImAliveThread->detach();
+}
+
+#define IM_ALIVE_THREAD_SLEEP_SEC 2
+#define ALIVE_PACKET_LENGTH 10
+void TraceRunner::im_alive_thread(void) {
+  char *data_buffer = (char *)calloc(ALIVE_PACKET_LENGTH, sizeof(char));
+  if (data_buffer == NULL) {
+    fprintf(stderr, "[Error] Data buffer allocation failed: size=%d\n",
+            ALIVE_PACKET_LENGTH);
+    return;
+  }
+
+  // Generate string to data buffer
+  TraceRunner::generate_simple_string(data_buffer, ALIVE_PACKET_LENGTH);
+  LOG_IMP("I'm Alive Thread start");
+  while (true) {
+    sc::send(data_buffer, ALIVE_PACKET_LENGTH);
+    sleep(IM_ALIVE_THREAD_SLEEP_SEC);
+  }
+  LOG_IMP("I'm Alive Thread end");
 }
 
 void TraceRunner::onUpdateServerAdapterState(sc::ServerAdapter *adapter,

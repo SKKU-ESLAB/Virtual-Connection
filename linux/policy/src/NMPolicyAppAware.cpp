@@ -53,11 +53,49 @@ void NMPolicyAppAware::on_custom_event(std::string &event_description) {
   // change current app name (event_description = "app_name")
   this->mPresentAppName.assign(event_description);
 
+  // reset recent switch timestamp: start to decide switch
+  this->reset_recent_switch_ts();
   return;
 }
 
 SwitchBehavior NMPolicyAppAware::decide(const Stats &stats, bool is_increasable,
                                         bool is_decreasable) {
+  // No decision after switch for prediction window
+  if (this->mRecentSwitchTS.tv_sec != 0 && this->mRecentSwitchTS.tv_usec != 0) {
+    struct timeval present_tv;
+    gettimeofday(&present_tv, NULL);
+
+    long long from_switch_elapsed_time_us =
+        ((long long)present_tv.tv_sec * (1000 * 1000) +
+         (long long)present_tv.tv_usec) -
+        ((long long)this->mRecentSwitchTS.tv_sec * (1000 * 1000) +
+         (long long)this->mRecentSwitchTS.tv_usec);
+
+    if (from_switch_elapsed_time_us < PREDICTION_WINDOW_SEC * 1000 * 1000 / 2) {
+      return kNoBehavior;
+    }
+  }
+  SwitchBehavior behavior =
+      this->decide_internal(stats, is_increasable, is_decreasable);
+  if (behavior == SwitchBehavior::kIncreaseAdapter ||
+      behavior == SwitchBehavior::kDecreaseAdapter) {
+    this->update_recent_switch_ts();
+  }
+  return behavior;
+}
+
+void NMPolicyAppAware::update_recent_switch_ts(void) {
+  gettimeofday(&this->mRecentSwitchTS, NULL);
+}
+
+void NMPolicyAppAware::reset_recent_switch_ts(void) {
+  this->mRecentSwitchTS.tv_sec = 0;
+  this->mRecentSwitchTS.tv_usec = 0;
+}
+
+SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
+                                                 bool is_increasable,
+                                                 bool is_decreasable) {
   // Step 1. detect increasing/decreasing traffic in series
   float present_request_bandwidth = stats.ema_queue_arrival_speed; // B/s
   float present_media_bandwidth =

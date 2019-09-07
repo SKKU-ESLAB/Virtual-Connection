@@ -117,6 +117,11 @@ private:
   void receiving_thread(void);
 
 private:
+  void start_im_alive_thread(void);
+  void im_alive_thread(void);
+  bool mIsFirstPacketSent = false;
+
+private:
   /* implement sc::ServerAdapterStateListener */
   virtual void onUpdateServerAdapterState(sc::ServerAdapter *adapter,
                                           sc::ServerAdapterState old_state,
@@ -148,7 +153,8 @@ private:
   int mRecentTSUs = 0;
 
   /* Components */
-  std::thread *mThread;
+  std::thread *mReceivingThread;
+  std::thread *mImAliveThread;
   sc::BtServerAdapter *mBtAdapter;
   sc::WfdServerAdapter *mWfdAdapter;
 }; /* class TraceRunner */
