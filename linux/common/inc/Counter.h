@@ -94,12 +94,12 @@ private:
 
 public:
   int get_speed() {
-    std::unique_lock<std::mutex> lock(this->mValueLock);
+    // std::unique_lock<std::mutex> lock(this->mValueLock);
     return this->get_speed_locked();
   };
 
   void update_speed() {
-    std::unique_lock<std::mutex> lock(this->mValueLock);
+    // std::unique_lock<std::mutex> lock(this->mValueLock);
     this->update_speed_locked();
   }
   void start_measure_speed(void);

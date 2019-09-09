@@ -47,7 +47,7 @@ _DEV_OBJ=BtServerAdapter.o BtDevice.o BtP2PServer.o RfcommServerSocket.o \
 					NetworkInitializer.o CommandRfkill.o CommandIwpriv.o CommandWpaCli.o
 DEV_OBJ=$(patsubst %, $(DEV_OBJ_DIR)/%, $(_DEV_OBJ))
 
-all : outdir exp
+all : outdir exp test_energy_predictor
 
 outdir :
 	$(MKDIR_P) $(BIN_DIR) $(CORE_OBJ_DIR) $(POLICY_OBJ_DIR) $(COMMON_OBJ_DIR) $(DEV_OBJ_DIR)
@@ -66,7 +66,7 @@ bt_only_runner: exp/bt_only_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_
 wfd_only_runner: exp/wfd_only_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
-tests: comm_init_test wpa_cli_test udhcpd_test network_tester idle_tester switch_tester
+tests: comm_init_test wpa_cli_test udhcpd_test network_tester idle_tester switch_tester test_energy_predictor
 
 wpa_cli_test: tests/wpa_cli.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB) 
@@ -84,6 +84,9 @@ idle_tester: tests/idle_tester.cpp tests/IdleTestRunner.cpp $(CORE_OBJ) $(POLICY
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
 switch_tester: tests/switch_tester.cpp tests/SwitchTestRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
+	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
+
+test_energy_predictor: tests/test_energy_predictor.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
 clean:
