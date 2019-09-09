@@ -78,19 +78,15 @@ void NetworkMonitorThread::print_stats(Stats &stats) {
   }
 
   this->mPrintCount++;
-  if (this->mPrintCount == 10) {
-    this->mPrintCount = 0;
-  } else {
+  if (this->mPrintCount % 10 != 0) {
     return;
   }
 
   char strline[512];
   snprintf(strline, 256,
-           "%8.3fms %4dB / %8.3fKB/s => %s[%4dKB]\e[0m => %s%6.1fKB/s\e[0m / "
+           "%d / %6.1fKB/s => %s[%4dKB]\e[0m => %s%6.1fKB/s\e[0m / "
            "RTT=%4dms",
-           ((float)stats.ema_arrival_time_us / 1000),
-           (int)stats.ema_send_request_size,
-           (stats.ema_queue_arrival_speed / 1000),
+           this->mPrintCount / 10, (stats.ema_queue_arrival_speed / 1000),
            (stats.now_queue_data_size == 0) ? "\e[44;97m" : "",
            (int)(stats.now_queue_data_size / 1000),
            (stats.now_total_bandwidth / 1000 > 3500) ? "\e[44;97m" : "",

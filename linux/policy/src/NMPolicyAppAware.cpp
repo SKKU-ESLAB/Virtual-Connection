@@ -28,7 +28,7 @@
 #include <cstdlib>
 #include <limits>
 
-// #define PRINT_EVERY_ENERGY_COMPARISON 1
+#define PRINT_EVERY_ENERGY_COMPARISON 1
 
 using namespace sc;
 
@@ -58,6 +58,8 @@ void NMPolicyAppAware::on_custom_event(std::string &event_description) {
   return;
 }
 
+#define SERIAL_INC_COUNT_THRESHOLD 3
+#define SERIAL_DEC_COUNT_THRESHOLD 3
 SwitchBehavior NMPolicyAppAware::decide(const Stats &stats, bool is_increasable,
                                         bool is_decreasable) {
   // No decision after switch for prediction window
@@ -75,8 +77,27 @@ SwitchBehavior NMPolicyAppAware::decide(const Stats &stats, bool is_increasable,
       return kNoBehavior;
     }
   }
+
+  // Filtering intermittent decision
   SwitchBehavior behavior =
       this->decide_internal(stats, is_increasable, is_decreasable);
+  if (behavior == SwitchBehavior::kIncreaseAdapter) {
+    if (this->mSerialIncCount < SERIAL_INC_COUNT_THRESHOLD) {
+      behavior = kNoBehavior;
+    }
+    this->mSerialIncCount++;
+    this->mSerialDecCount = 0;
+  } else if (behavior == SwitchBehavior::kDecreaseAdapter) {
+    if (this->mSerialDecCount < SERIAL_DEC_COUNT_THRESHOLD) {
+      behavior = kNoBehavior;
+    }
+    this->mSerialDecCount++;
+    this->mSerialIncCount = 0;
+  } else {
+    this->mSerialIncCount = 0;
+    this->mSerialDecCount = 0;
+  }
+
   if (behavior == SwitchBehavior::kIncreaseAdapter ||
       behavior == SwitchBehavior::kDecreaseAdapter) {
     this->update_recent_switch_ts();
@@ -96,10 +117,20 @@ void NMPolicyAppAware::reset_recent_switch_ts(void) {
 SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
                                                  bool is_increasable,
                                                  bool is_decreasable) {
-  // Step 1. detect increasing/decreasing traffic in series
   float present_request_bandwidth = stats.ema_queue_arrival_speed; // B/s
   float present_media_bandwidth =
       present_request_bandwidth + (float)stats.now_queue_data_size; // B/s
+
+  // Filtering increase when idle / decrease when busy
+  if (present_media_bandwidth > IDLE_THRESHOLD && is_decreasable) {
+    // Filtering decrease when busy
+    return kNoBehavior;
+  } else if (present_media_bandwidth < IDLE_THRESHOLD && is_increasable) {
+    // Filtering increase when idle
+    return kNoBehavior;
+  }
+
+  // Step 1. detect increasing/decreasing traffic in series
   if (present_media_bandwidth < this->mLastMediaBandwidth ||
       present_media_bandwidth < IDLE_THRESHOLD) {
     this->mRequestSpeedDecCount++;
@@ -141,6 +172,7 @@ SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
       (float)(presentTimeUS - recentCustomEventTSUS) / 1000000.0f;
   float min_diff = std::numeric_limits<float>::max();
   std::vector<BWTrafficEntry> &bwTrafficList = appEntry->getList();
+  float proper_time_sec = 0.0f, proper_request_bandwidth = 0.0f;
   for (std::vector<BWTrafficEntry>::iterator it = bwTrafficList.begin();
        it != bwTrafficList.end(); it++) {
     BWTrafficEntry &bw_traffic = *it;
@@ -164,6 +196,8 @@ SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
     if (newDiff < min_diff) {
       min_diff = newDiff;
       most_proper_traffic = &(bw_traffic);
+      proper_time_sec = key_time_sec;
+      proper_request_bandwidth = key_request_bandwidth;
     }
 
     // LOG_DEBUG("%03.6f %03.6f vs. %03.6f - %03.6f => %.3f",
@@ -186,8 +220,8 @@ SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
     this->mEnergyRetain = energy_bt;
     this->mEnergySwitch = energy_bt_to_wfd;
 #if PRINT_EVERY_ENERGY_COMPARISON == 1
-    LOG_IMP("(%f > %f) ? BT : to-WFD", this->mEnergyRetain,
-            this->mEnergySwitch);
+    LOG_IMP("%4.1fs, %6.1fB/s => (%f > %f) ? BT : to-WFD", proper_time_sec,
+            proper_request_bandwidth, this->mEnergyRetain, this->mEnergySwitch);
 #endif
     if (energy_bt < 0.0f || energy_bt_to_wfd < 0.0f) {
       return kNoBehavior;
@@ -205,8 +239,8 @@ SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
     this->mEnergyRetain = energy_wfd;
     this->mEnergySwitch = energy_wfd_to_bt;
 #if PRINT_EVERY_ENERGY_COMPARISON == 1
-    LOG_IMP("(%f > %f) ? WFD : to-BT", this->mEnergyRetain,
-            this->mEnergySwitch);
+    LOG_IMP("%4.1fs, %6.1fB/s => (%f > %f) ? WFD : to-BT", proper_time_sec,
+            proper_request_bandwidth, this->mEnergyRetain, this->mEnergySwitch);
 #endif
     if (energy_wfd < 0.0f || energy_wfd_to_bt < 0.0f) {
       return kNoBehavior;

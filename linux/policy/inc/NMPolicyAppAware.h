@@ -34,6 +34,8 @@ public:
     this->mLastMediaBandwidth = 0.0f;
     this->mRequestSpeedIncCount = 0;
     this->mRequestSpeedDecCount = 0;
+    this->mSerialIncCount = 0;
+    this->mSerialDecCount = 0;
     this->mEnergyRetain = 0.0f;
     this->mEnergySwitch = 0.0f;
     this->mTrafficPredictionTable.initialize();
@@ -58,6 +60,9 @@ private:
   float mLastMediaBandwidth;
   int mRequestSpeedIncCount;
   int mRequestSpeedDecCount;
+
+  int mSerialIncCount;
+  int mSerialDecCount;
 
   float mEnergyRetain;
   float mEnergySwitch;
