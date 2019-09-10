@@ -43,9 +43,9 @@ public:
     bool ret = this->mCSVReader->read_row(app_name, time_sec_str, bandwidth_str,
                                           inc_flag_str, traffic_sequence_str);
     if (ret) {
-      LOG_VERB("ROW: %s / %s / %s / %s / %s", app_name.c_str(),
-               time_sec_str.c_str(), bandwidth_str.c_str(),
-               inc_flag_str.c_str(), traffic_sequence_str.c_str());
+      // LOG_VERB("ROW: %s / %s / %s / %s / %s", app_name.c_str(),
+      //          time_sec_str.c_str(), bandwidth_str.c_str(),
+      //          inc_flag_str.c_str(), traffic_sequence_str.c_str());
       time_sec = std::stof(time_sec_str);
       bandwidth = std::stof(bandwidth_str);
       is_increase = (std::stoi(inc_flag_str) > 0) ? true : false;

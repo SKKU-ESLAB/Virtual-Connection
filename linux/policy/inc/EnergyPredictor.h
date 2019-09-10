@@ -45,7 +45,7 @@
 /* Measured maximum bandwidth (B/s) */
 #define MAX_BANDWIDTH_BT 75000.0f
 #define MAX_BANDWIDTH_WFD 3500000.0f
-#define MAX_BANDWIDTH_BT_TO_WFD 200000.0f
+#define MAX_BANDWIDTH_BT_TO_WFD 75000.0f
 #define MAX_BANDWIDTH_WFD_TO_BT 3500000.0f
 
 /* Power regression model */

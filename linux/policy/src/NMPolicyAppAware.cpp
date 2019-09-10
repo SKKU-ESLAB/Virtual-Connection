@@ -84,12 +84,16 @@ SwitchBehavior NMPolicyAppAware::decide(const Stats &stats, bool is_increasable,
   if (behavior == SwitchBehavior::kIncreaseAdapter) {
     if (this->mSerialIncCount < SERIAL_INC_COUNT_THRESHOLD) {
       behavior = kNoBehavior;
+    } else {
+      this->mIsRecentWfdOn = true;
     }
     this->mSerialIncCount++;
     this->mSerialDecCount = 0;
   } else if (behavior == SwitchBehavior::kDecreaseAdapter) {
     if (this->mSerialDecCount < SERIAL_DEC_COUNT_THRESHOLD) {
       behavior = kNoBehavior;
+    } else {
+      this->mIsRecentWfdOn = false;
     }
     this->mSerialDecCount++;
     this->mSerialIncCount = 0;
@@ -226,7 +230,6 @@ SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
     if (energy_bt < 0.0f || energy_bt_to_wfd < 0.0f) {
       return kNoBehavior;
     } else if (energy_bt > energy_bt_to_wfd) {
-      this->mIsRecentWfdOn = true;
       return kIncreaseAdapter;
     } else {
       return kNoBehavior;
@@ -245,7 +248,6 @@ SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
     if (energy_wfd < 0.0f || energy_wfd_to_bt < 0.0f) {
       return kNoBehavior;
     } else if (energy_wfd > energy_wfd_to_bt) {
-      this->mIsRecentWfdOn = false;
       return kDecreaseAdapter;
     } else {
       return kNoBehavior;
