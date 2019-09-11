@@ -28,7 +28,7 @@
 #include <cstdlib>
 #include <limits>
 
-#define PRINT_EVERY_ENERGY_COMPARISON 1
+// #define PRINT_EVERY_ENERGY_COMPARISON 1
 
 using namespace sc;
 

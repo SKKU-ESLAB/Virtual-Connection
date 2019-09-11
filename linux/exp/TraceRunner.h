@@ -78,7 +78,7 @@ public:
     std::string ts_us_str;
     bool ret = this->mCSVReader->read_row(ts_us_str, event_description);
     if (ret) {
-      LOG_VERB("ROW: %s / %s", ts_us_str.c_str(), event_description.c_str());
+      // LOG_VERB("ROW: %s / %s", ts_us_str.c_str(), event_description.c_str());
       ts_us = std::stoi(ts_us_str);
     }
 

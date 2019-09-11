@@ -44,6 +44,7 @@ public:
   NMPolicy(void) { this->mIsFirstCustomEvent = false; }
 
   virtual std::string get_stats_string(void) = 0;
+  virtual std::string get_name(void) = 0;
 
   void send_custom_event(const char *event_cstring) {
     std::string event_string(event_cstring);

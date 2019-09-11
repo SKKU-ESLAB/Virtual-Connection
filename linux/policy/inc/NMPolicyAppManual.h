@@ -30,6 +30,10 @@ class NMPolicyAppManual : public NMPolicy {
 public:
   NMPolicyAppManual(void) { this->mWFDMode = false; }
   virtual std::string get_stats_string(void);
+  virtual std::string get_name(void) {
+    std::string str("App manual");
+    return str;
+  }
   virtual void on_custom_event(std::string &event_description);
   virtual SwitchBehavior decide(const Stats &stats, bool is_increasable,
                                 bool is_decreasable);

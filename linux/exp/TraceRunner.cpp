@@ -48,6 +48,7 @@ void TraceRunner::start(NMPolicy *switch_policy) {
   assert(!this->mPacketTraceFilename.empty());
 
   printf("** TraceRunner Start\n");
+  printf(" ** Policy: %s\n", switch_policy->get_name().c_str());
   printf(" ** Packet Trace: %s\n", this->mPacketTraceFilename.c_str());
   printf(" ** Event Trace: %s\n", this->mEventTraceFilename.c_str());
 

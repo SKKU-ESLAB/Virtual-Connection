@@ -22,6 +22,9 @@
 #ifndef __DEBUG_LOG_H__
 #define __DEBUG_LOG_H__
 
+#undef LOG_LEVEL
+#define LOG_LEVEL 3
+
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -33,10 +36,6 @@
 #define unlikely(x) __builtin_expect(!!(x), 0)
 #endif /* likely(x) */
 
-#ifndef LOG_LEVEL
-#define LOG_LEVEL 1
-#endif
-
 #define _log(format, color, args...)                                           \
   do {                                                                         \
     __log(format, __FILE__, __func__, color, __LINE__, ##args);                \
@@ -46,45 +45,45 @@
     __func(format, __FILE__, __func__, __LINE__, ##args);                      \
   } while (0)
 
-#if LOG_LEVEL < 1
+#if (LOG_LEVEL < 1)
 #define LOG_DEBUG(fmt, args...)                                                \
   do {                                                                         \
-    _log(fmt, 34, 49, ##args);                                                      \
+    _log(fmt, 34, 49, ##args);                                                 \
   } while (0)
-#else /* LOG_LEVEL >= 1 */
+#else
 #define LOG_DEBUG(fmt, args...)
-#endif /* LOG_LEVEL < 1 */
+#endif
 
-#if LOG_LEVEL < 2
+#if (LOG_LEVEL < 2)
 #define LOG_VERB(fmt, args...)                                                 \
   do {                                                                         \
-    _log(fmt, 32, 49, ##args);                                                     \
+    _log(fmt, 32, 49, ##args);                                                 \
   } while (0)
-#else /* LOG_LEVEL >= 2 */
+#else
 #define LOG_VERB(fmt, args...)
-#endif /* LOG_LEVEL < 2 */
+#endif
 
-#if LOG_LEVEL < 3
+#if (LOG_LEVEL < 3)
 #define LOG_WARN(fmt, args...)                                                 \
   do {                                                                         \
-    _log(fmt, 91, 49, ##args);                                                     \
+    _log(fmt, 91, 49, ##args);                                                 \
   } while (0)
-#else /* LOG_LEVEL >= 3 */
+#else
 #define LOG_WARN(fmt, args...)
-#endif /* LOG_LEVEL < 3 */
+#endif
 
-#if LOG_LEVEL < 4
+#if (LOG_LEVEL < 4)
 #define LOG_ERR(fmt, args...)                                                  \
   do {                                                                         \
-    _log(fmt, 41, 97, ##args);                                                    \
+    _log(fmt, 41, 97, ##args);                                                 \
   } while (0)
-#else /* LOG_LEVEL >= 4 */
+#else
 #define LOG_ERR(fmt, args...)
-#endif /* LOG_LEVEL < 4 */
+#endif
 
 #define LOG_IMP(fmt, args...)                                                  \
   do {                                                                         \
-    _log(fmt, 104, 35, ##args);                                                    \
+    _log(fmt, 104, 35, ##args);                                                \
   } while (0)
 
 #define __FUNCTION_ENTER__                                                     \

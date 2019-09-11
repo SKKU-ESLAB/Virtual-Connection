@@ -1,5 +1,7 @@
 BIN_DIR=./bin
 
+TOOLS_DIR=./tools
+
 CORE_SRC_DIR=./core/src
 CORE_OBJ_DIR=./core/obj
 
@@ -47,10 +49,21 @@ _DEV_OBJ=BtServerAdapter.o BtDevice.o BtP2PServer.o RfcommServerSocket.o \
 					NetworkInitializer.o CommandRfkill.o CommandIwpriv.o CommandWpaCli.o
 DEV_OBJ=$(patsubst %, $(DEV_OBJ_DIR)/%, $(_DEV_OBJ))
 
-all : outdir exp test_energy_predictor
+_TOOLS := reset.py set-governor.sh
+TOOLS := $(patsubst %,$(BIN_DIR)/%, $(_TOOLS))
+
+all : outdir tools exp test_energy_predictor
 
 outdir :
 	$(MKDIR_P) $(BIN_DIR) $(CORE_OBJ_DIR) $(POLICY_OBJ_DIR) $(COMMON_OBJ_DIR) $(DEV_OBJ_DIR)
+
+tools : $(TOOLS)
+
+$(BIN_DIR)/%.py : $(TOOLS_DIR)/%.py
+	cp $< $@
+
+$(BIN_DIR)/%.sh : $(TOOLS_DIR)/%.sh
+	cp $< $@
 
 exp: app_aware_runner bt_only_runner wfd_only_runner app_manual_runner
 
