@@ -30,7 +30,10 @@ namespace sc {
 class NMPolicyContextAware : public NMPolicy {
 public:
   NMPolicyContextAware(void) {
-    this->mPresentAppName.assign(""); // TODO:
+    this->mPresentX = 0.0f;
+    this->mPresentY = 0.0f;
+    this->mPresentZ = 0.0f;
+
     this->mLastMediaBandwidth = 0.0f;
     this->mRequestSpeedIncCount = 0;
     this->mRequestSpeedDecCount = 0;
@@ -41,6 +44,7 @@ public:
     this->mTrafficPredictionTable.initialize();
     this->mIsRecentWfdOn = false;
 
+    this->reset_zero_point_ts();
     this->reset_recent_switch_ts();
   }
   virtual std::string get_stats_string(void);
@@ -58,8 +62,13 @@ private:
   void update_recent_switch_ts(void);
   void reset_recent_switch_ts(void);
 
+  void update_zero_point_ts();
+  void reset_zero_point_ts(void);
+
 private:
-  std::string mPresentAppName; // TODO:
+  float mPresentX;
+  float mPresentY;
+  float mPresentZ;
 
   float mLastMediaBandwidth;
   int mRequestSpeedIncCount;
@@ -72,6 +81,7 @@ private:
   float mEnergySwitch;
   bool mIsRecentWfdOn;
 
+  struct timeval mZeroPointTS;
   struct timeval mRecentSwitchTS;
 
   ContextAwareTPT mTrafficPredictionTable;

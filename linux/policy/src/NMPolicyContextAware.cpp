@@ -40,28 +40,32 @@ std::string NMPolicyContextAware::get_stats_string(void) {
     snprintf(recent_adapter_name, 50, "BT");
   }
   char stats_cstr[256];
-  snprintf(stats_cstr, 256, "\"%s\": %d vs. %d - (%d/%d) - %s",
-           this->mPresentAppName.c_str(), (int)this->mEnergyRetain,
-           (int)this->mEnergySwitch, this->mRequestSpeedIncCount,
-           this->mRequestSpeedDecCount, recent_adapter_name);
+  snprintf(stats_cstr, 256, "\"%4.2f, %4.2f, %4.2f\": %d vs. %d - (%d/%d) - %s",
+           this->mPresentX, this->mPresentY, this->mPresentZ,
+           (int)this->mEnergyRetain, (int)this->mEnergySwitch,
+           this->mRequestSpeedIncCount, this->mRequestSpeedDecCount,
+           recent_adapter_name);
 
   std::string stats_string(stats_cstr);
   return stats_string;
 }
 
 void NMPolicyContextAware::on_custom_event(std::string &event_description) {
-  // change current app name (event_description = "app_name")
-  this->mPresentAppName.assign(event_description);
+  // change current sensor data (event_description = "x y z")
+  sscanf(event_description.c_str(), "%f %f %f", this->mPresentX,
+         this->mPresentY, this->mPresentZ);
 
-  // reset recent switch timestamp: start to decide switch
-  this->reset_recent_switch_ts();
+  if (this->mZeroPointTS.tv_sec == 0 && this->mZeroPointTS.tv_usec == 0) {
+    this->update_zero_point_ts();
+  }
   return;
 }
 
 #define SERIAL_INC_COUNT_THRESHOLD 3
 #define SERIAL_DEC_COUNT_THRESHOLD 3
-SwitchBehavior NMPolicyContextAware::decide(const Stats &stats, bool is_increasable,
-                                        bool is_decreasable) {
+SwitchBehavior NMPolicyContextAware::decide(const Stats &stats,
+                                            bool is_increasable,
+                                            bool is_decreasable) {
   // No decision after switch for prediction window
   if (this->mRecentSwitchTS.tv_sec != 0 && this->mRecentSwitchTS.tv_usec != 0) {
     struct timeval present_tv;
@@ -118,9 +122,17 @@ void NMPolicyContextAware::reset_recent_switch_ts(void) {
   this->mRecentSwitchTS.tv_usec = 0;
 }
 
+void NMPolicyContextAware::update_zero_point_ts() {
+  gettimeofday(&this->mZeroPointTS, NULL);
+}
+void NMPolicyContextAware::reset_zero_point_ts(void) {
+  this->mZeroPointTS.tv_sec = 0;
+  this->mZeroPointTS.tv_usec = 0;
+}
+
 SwitchBehavior NMPolicyContextAware::decide_internal(const Stats &stats,
-                                                 bool is_increasable,
-                                                 bool is_decreasable) {
+                                                     bool is_increasable,
+                                                     bool is_decreasable) {
   float present_request_bandwidth = stats.ema_queue_arrival_speed; // B/s
   float present_media_bandwidth =
       present_request_bandwidth + (float)stats.now_queue_data_size; // B/s
@@ -150,63 +162,49 @@ SwitchBehavior NMPolicyContextAware::decide_internal(const Stats &stats,
     return kNoBehavior;
   }
 
-  // Step 2. get traffic prediction entry for the app
-  if (this->mPresentAppName.empty()) {
-    return kNoBehavior;
-  }
-  AppTrafficEntry *appEntry =
-      this->mTrafficPredictionTable.getItem(this->mPresentAppName);
-  if (appEntry == NULL) {
-    LOG_WARN("Cannot find traffic prediction: %s",
-             this->mPresentAppName.c_str());
+  if (this->mPresentX == 0.0f && this->mPresentY == 0.0f &&
+      this->mPresentZ == 0.0f) {
     return kNoBehavior;
   }
 
   // Step 3. select most proper traffic history
-  //         (nearest bandwidth, elapsed time)
+  //         (nearest x/y/z, nearest bandwidth, elapsed time)
   BWTrafficEntry *most_proper_traffic = NULL;
   struct timeval present_time;
   gettimeofday(&present_time, NULL);
   long long presentTimeUS =
       (long long)present_time.tv_sec * 1000 * 1000 + present_time.tv_usec;
-  long long recentCustomEventTSUS =
-      (long long)this->mRecentCustomEventTS.tv_sec * 1000 * 1000 +
-      this->mRecentCustomEventTS.tv_usec;
-  float present_time_sec =
-      (float)(presentTimeUS - recentCustomEventTSUS) / 1000000.0f;
+  long long zeroPointTSUS = (long long)this->mZeroPointTS.tv_sec * 1000 * 1000 +
+                            this->mZeroPointTS.tv_usec;
+  float present_time_sec = (float)(presentTimeUS - zeroPointTSUS) / 1000000.0f;
   float min_diff = std::numeric_limits<float>::max();
-  std::vector<BWTrafficEntry> &bwTrafficList = appEntry->getList();
+  std::vector<BWTrafficEntry> &bwTrafficList =
+      this->mTrafficPredictionTable.getList();
   float proper_time_sec = 0.0f, proper_request_bandwidth = 0.0f;
   for (std::vector<BWTrafficEntry>::iterator it = bwTrafficList.begin();
        it != bwTrafficList.end(); it++) {
     BWTrafficEntry &bw_traffic = *it;
     float key_time_sec = bw_traffic.getTimeSec();            // sec
     float key_request_bandwidth = bw_traffic.getBandwidth(); // B/s
-
-    // if (this->mRequestSpeedDecCount >= DEC_COUNT_THRESHOLD &&
-    //     bw_traffic.isIncrease()) {
-    //   continue;
-    // } else if (this->mRequestSpeedIncCount >= INC_COUNT_THRESHOLD &&
-    //            !bw_traffic.isIncrease()) {
-    //   continue;
-    // }
+    float key_x = 0.0f, key_y = 0.0f, key_z = 0.0f;
+    bw_traffic.getSensorData(key_x, key_y, key_z);
 
 #define EPSILON 0.000001f
-    float newDiff =
-        (std::abs(key_request_bandwidth - present_request_bandwidth) /
-         (present_request_bandwidth + EPSILON)) *
-        (std::abs(key_time_sec - present_time_sec) /
-         (present_time_sec + EPSILON));
+    float bwDiff = std::abs(key_request_bandwidth - present_request_bandwidth) /
+                   (present_request_bandwidth + EPSILON);
+    float timeDiff = std::abs(key_time_sec - present_time_sec) /
+                     (present_time_sec + EPSILON);
+    float distDiff =
+        (std::abs(key_x - this->mPresentX) + std::abs(key_y - this->mPresentY) +
+         std::abs(key_y - this->mPresentY)) /
+        (this->mPresentX + this->mPresentY + this->mPresentZ + EPSILON);
+    float newDiff = bwDiff * timeDiff * distDiff;
     if (newDiff < min_diff) {
       min_diff = newDiff;
       most_proper_traffic = &(bw_traffic);
       proper_time_sec = key_time_sec;
       proper_request_bandwidth = key_request_bandwidth;
     }
-
-    // LOG_DEBUG("%03.6f %03.6f vs. %03.6f - %03.6f => %.3f",
-    //           present_request_bandwidth, present_time_sec,
-    //           key_request_bandwidth, key_time_sec, newDiff);
   }
   if (most_proper_traffic == NULL) {
     LOG_WARN("No most proper traffic");
