@@ -24,9 +24,9 @@
 
 namespace sc {
 
-class BWTrafficEntry {
+class CABWTrafficEntry {
 public:
-  BWTrafficEntry(float time_sec, float x, float y, float z, float bandwidth,
+  CABWTrafficEntry(float time_sec, float x, float y, float z, float bandwidth,
                  bool is_increase, std::vector<int> traffic_sequence) {
     this->mTimeSec = time_sec;
     this->mX = x;
@@ -69,14 +69,14 @@ public:
   ContextAwareTPT(void) {}
   void initialize(void);
 
-  void addItem(BWTrafficEntry &bwTrafficEntry) {
+  void addItem(CABWTrafficEntry &bwTrafficEntry) {
     this->mBWTrafficList.push_back(bwTrafficEntry);
   }
 
-  std::vector<BWTrafficEntry> &getList() { return this->mBWTrafficList; }
+  std::vector<CABWTrafficEntry> &getList() { return this->mBWTrafficList; }
 
 private:
-  std::vector<BWTrafficEntry> mBWTrafficList;
+  std::vector<CABWTrafficEntry> mBWTrafficList;
 }; /* class ContextAwareTPT */
 } /* namespace sc */
 

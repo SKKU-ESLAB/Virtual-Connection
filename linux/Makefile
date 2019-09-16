@@ -32,8 +32,13 @@ CORE_OBJ=$(patsubst %, $(CORE_OBJ_DIR)/%, $(_CORE_OBJ))
 $(POLICY_OBJ_DIR)/%.o: $(POLICY_SRC_DIR)/%.cpp
 	$(CC) -o $@ -c $< $(FLAG) $(LIB)
 
-_POLICY_OBJ=NMPolicyManual.o NMPolicyAppAware.o AppAwareTPT.o EnergyPredictor.o NMPolicyAppManual.o NMPolicyBtOnly.o NMPolicyWfdOnly.o
+_POLICY_OBJ=AppAwareTPT.o EnergyPredictor.o \
+						NMPolicyManual.o NMPolicyAppAware.o NMPolicyAppManual.o \
+						NMPolicyBtOnly.o NMPolicyWfdOnly.o
 POLICY_OBJ=$(patsubst %, $(POLICY_OBJ_DIR)/%, $(_POLICY_OBJ))
+
+_CA_POLICY_OBJ=ContextAwareTPT.o EnergyPredictor.o NMPolicyContextAware.o
+CA_POLICY_OBJ=$(patsubst %, $(POLICY_OBJ_DIR)/%, $(_CA_POLICY_OBJ))
 
 $(COMMON_OBJ_DIR)/%.o: $(COMMON_SRC_DIR)/%.cpp
 	$(CC) -o $@ -c $< $(FLAG) $(LIB)
@@ -65,9 +70,12 @@ $(BIN_DIR)/%.py : $(TOOLS_DIR)/%.py
 $(BIN_DIR)/%.sh : $(TOOLS_DIR)/%.sh
 	cp $< $@
 
-exp: app_aware_runner bt_only_runner wfd_only_runner app_manual_runner
+exp: app_aware_runner context_aware_runner bt_only_runner wfd_only_runner app_manual_runner
 
 app_aware_runner: exp/app_aware_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
+	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
+
+context_aware_runner: exp/context_aware_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(CA_POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
 app_manual_runner: exp/app_manual_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)

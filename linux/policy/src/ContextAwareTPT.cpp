@@ -97,8 +97,8 @@ void ContextAwareTPT::initialize(void) {
       break;
     }
 
-    BWTrafficEntry new_bw_traffic_entry(time_sec, x, y, z, bandwidth,
-                                        is_increase, traffic_sequence);
+    CABWTrafficEntry new_bw_traffic_entry(time_sec, x, y, z, bandwidth,
+                                          is_increase, traffic_sequence);
     this->addItem(new_bw_traffic_entry);
     num_rows++;
   }

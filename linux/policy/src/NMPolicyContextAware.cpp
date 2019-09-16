@@ -169,7 +169,7 @@ SwitchBehavior NMPolicyContextAware::decide_internal(const Stats &stats,
 
   // Step 3. select most proper traffic history
   //         (nearest x/y/z, nearest bandwidth, elapsed time)
-  BWTrafficEntry *most_proper_traffic = NULL;
+  CABWTrafficEntry *most_proper_traffic = NULL;
   struct timeval present_time;
   gettimeofday(&present_time, NULL);
   long long presentTimeUS =
@@ -178,12 +178,12 @@ SwitchBehavior NMPolicyContextAware::decide_internal(const Stats &stats,
                             this->mZeroPointTS.tv_usec;
   float present_time_sec = (float)(presentTimeUS - zeroPointTSUS) / 1000000.0f;
   float min_diff = std::numeric_limits<float>::max();
-  std::vector<BWTrafficEntry> &bwTrafficList =
+  std::vector<CABWTrafficEntry> &bwTrafficList =
       this->mTrafficPredictionTable.getList();
   float proper_time_sec = 0.0f, proper_request_bandwidth = 0.0f;
-  for (std::vector<BWTrafficEntry>::iterator it = bwTrafficList.begin();
+  for (std::vector<CABWTrafficEntry>::iterator it = bwTrafficList.begin();
        it != bwTrafficList.end(); it++) {
-    BWTrafficEntry &bw_traffic = *it;
+    CABWTrafficEntry &bw_traffic = *it;
     float key_time_sec = bw_traffic.getTimeSec();            // sec
     float key_request_bandwidth = bw_traffic.getBandwidth(); // B/s
     float key_x = 0.0f, key_y = 0.0f, key_z = 0.0f;
