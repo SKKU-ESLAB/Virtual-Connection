@@ -27,7 +27,7 @@ def main():
     print("  - Try to remove Wi-fi P2P groups")
     removed_wifi_p2p_name = try_to_remove_wifi_p2p()
     if removed_wifi_p2p_name:
-        print "    (Removed Wi-fi P2P of " + wfd_interface_name + ")"
+        print "    (Removed Wi-fi P2P of " + removed_wifi_p2p_name + ")"
 
     if config['realtek_mode']:
         reset_wpa_supplicant()

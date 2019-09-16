@@ -37,7 +37,7 @@ _POLICY_OBJ=AppAwareTPT.o EnergyPredictor.o \
 						NMPolicyBtOnly.o NMPolicyWfdOnly.o
 POLICY_OBJ=$(patsubst %, $(POLICY_OBJ_DIR)/%, $(_POLICY_OBJ))
 
-_CA_POLICY_OBJ=ContextAwareTPT.o EnergyPredictor.o NMPolicyContextAware.o
+_CA_POLICY_OBJ=ContextAwareTPT.o EnergyPredictor.o NMPolicyContextAware.o NMPolicyManual.o
 CA_POLICY_OBJ=$(patsubst %, $(POLICY_OBJ_DIR)/%, $(_CA_POLICY_OBJ))
 
 $(COMMON_OBJ_DIR)/%.o: $(COMMON_SRC_DIR)/%.cpp
@@ -70,7 +70,8 @@ $(BIN_DIR)/%.py : $(TOOLS_DIR)/%.py
 $(BIN_DIR)/%.sh : $(TOOLS_DIR)/%.sh
 	cp $< $@
 
-exp: app_aware_runner context_aware_runner bt_only_runner wfd_only_runner app_manual_runner
+# exp: context_aware_runner
+exp: app_aware_runner bt_only_runner wfd_only_runner app_manual_runner
 
 app_aware_runner: exp/app_aware_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)

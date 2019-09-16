@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
 
   if (argc == 1) {
     packet_trace_filename.assign("final-packet-trace.csv");
-    context_trace_filename.assign("final-context-trace.csv");
+    context_trace_filename.assign("final-sensor-trace.csv");
   } else {
     packet_trace_filename.assign(argv[1]);
     context_trace_filename.assign(argv[2]);
