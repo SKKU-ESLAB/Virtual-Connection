@@ -33,7 +33,7 @@ $(POLICY_OBJ_DIR)/%.o: $(POLICY_SRC_DIR)/%.cpp
 	$(CC) -o $@ -c $< $(FLAG) $(LIB)
 
 _POLICY_OBJ=AppAwareTPT.o EnergyPredictor.o \
-						NMPolicyManual.o NMPolicyAppAware.o NMPolicyAppManual.o \
+						NMPolicyManual.o NMPolicyAppAware.o NMPolicyAppManual.o NMPolicyThroughputAware.o \
 						NMPolicyBtOnly.o NMPolicyWfdOnly.o
 POLICY_OBJ=$(patsubst %, $(POLICY_OBJ_DIR)/%, $(_POLICY_OBJ))
 
@@ -71,7 +71,7 @@ $(BIN_DIR)/%.sh : $(TOOLS_DIR)/%.sh
 	cp $< $@
 
 # exp: context_aware_runner
-exp: app_aware_runner bt_only_runner wfd_only_runner app_manual_runner
+exp: app_aware_runner bt_only_runner wfd_only_runner app_manual_runner throughput_aware_runner
 
 app_aware_runner: exp/app_aware_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
@@ -80,6 +80,9 @@ context_aware_runner: exp/context_aware_runner.cpp exp/TraceRunner.cpp $(CORE_OB
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
 app_manual_runner: exp/app_manual_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
+	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
+
+throughput_aware_runner: exp/throughput_aware_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
 bt_only_runner: exp/bt_only_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
