@@ -39,8 +39,8 @@
 #define ADAPTER_WFD_TO_BT 4
 
 /* Measured switch latency */
-#define LATENCY_BT_TO_WFD 5.4015f
-#define LATENCY_WFD_TO_BT 6.8679f
+#define LATENCY_BT_TO_WFD 4.1709f
+#define LATENCY_WFD_TO_BT 1.6501f
 
 /* Measured maximum bandwidth (B/s) */
 #define MAX_BANDWIDTH_BT 75000.0f
