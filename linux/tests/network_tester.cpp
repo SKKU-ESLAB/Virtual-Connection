@@ -28,7 +28,7 @@ using namespace sc;
 
 int main(int argc, char **argv) {
   /* Parse arguments */
-  if (argc != 3 && argc != 4) {
+  if (argc != 2 && argc != 3) {
     printf("[Usage] %s <send when?> <user-side throughput (B/s)>\n", argv[0]);
     printf("  - on BT: 0\n");
     printf("  - on WFD: 1\n");
@@ -38,14 +38,16 @@ int main(int argc, char **argv) {
   }
 
   int send_when = atoi(argv[1]);
-  int throughput = atoi(argv[2]);
+  int throughput;
+  if (argc == 2) {
+    throughput = -1;
+  } else {
+    throughput = atoi(argv[2]);
+  }
 
   TestRunner *test_runner;
   if (send_when < 0 || send_when > 3) {
     printf("Invalid send-when!: %d\n", send_when);
-    return -1;
-  } else if(throughput <= 0) {
-    printf("Invalid throughput!: %d\n", throughput);
     return -1;
   }
 

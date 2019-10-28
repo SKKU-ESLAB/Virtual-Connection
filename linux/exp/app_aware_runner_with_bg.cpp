@@ -48,10 +48,10 @@ int main(int argc, char **argv) {
 
   TraceRunner *trace_runner = TraceRunner::trace_runner(
       packet_trace_filename, app_trace_filename, true);
+  
+  printf("App-aware policy with FG+BG mode\n");
 
-  printf("App-aware policy with FG-only mode\n");
-
-  NMPolicyAppAware *switch_policy = new NMPolicyAppAware(false);
+  NMPolicyAppAware *switch_policy = new NMPolicyAppAware(true);
   trace_runner->start(switch_policy);
 
   delete switch_policy;

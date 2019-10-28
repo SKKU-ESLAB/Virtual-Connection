@@ -24,6 +24,7 @@
 
 #include "../../common/inc/DebugLog.h"
 
+#include <assert.h>
 #include <cmath>
 #include <cstdlib>
 #include <limits>
@@ -121,6 +122,116 @@ void NMPolicyAppAware::reset_recent_switch_ts(void) {
 SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
                                                  bool is_increasable,
                                                  bool is_decreasable) {
+  if (this->mIsFGBGMixedMode) {
+    return this->decide_internal_fg_bg_mixed_mode(stats, is_increasable,
+                                                  is_decreasable);
+  } else {
+    return this->decide_internal_fg_only_mode(stats, is_increasable,
+                                              is_decreasable);
+  }
+}
+
+BWTrafficEntry *
+NMPolicyAppAware::get_most_proper_traffic(AppTrafficEntry *appEntry,
+                                          float present_request_bandwidth) {
+  BWTrafficEntry *most_proper_traffic = NULL;
+  struct timeval present_time;
+  gettimeofday(&present_time, NULL);
+  long long presentTimeUS =
+      (long long)present_time.tv_sec * 1000 * 1000 + present_time.tv_usec;
+  long long recentCustomEventTSUS =
+      (long long)this->mRecentCustomEventTS.tv_sec * 1000 * 1000 +
+      this->mRecentCustomEventTS.tv_usec;
+  float present_time_sec =
+      (float)(presentTimeUS - recentCustomEventTSUS) / 1000000.0f;
+  float min_diff = std::numeric_limits<float>::max();
+  std::vector<BWTrafficEntry> &bwTrafficList = appEntry->getList();
+  float proper_time_sec = 0.0f, proper_request_bandwidth = 0.0f;
+  for (std::vector<BWTrafficEntry>::iterator it = bwTrafficList.begin();
+       it != bwTrafficList.end(); it++) {
+    BWTrafficEntry &bw_traffic = *it;
+    float key_time_sec = bw_traffic.getTimeSec();            // sec
+    float key_request_bandwidth = bw_traffic.getBandwidth(); // B/s
+
+    // if (this->mRequestSpeedDecCount >= DEC_COUNT_THRESHOLD &&
+    //     bw_traffic.isIncrease()) {
+    //   continue;
+    // } else if (this->mRequestSpeedIncCount >= INC_COUNT_THRESHOLD &&
+    //            !bw_traffic.isIncrease()) {
+    //   continue;
+    // }
+
+#define EPSILON 0.000001f
+    float newDiff =
+        ((std::abs(key_request_bandwidth - present_request_bandwidth) /
+          (present_request_bandwidth + EPSILON)) *
+         std::abs(key_time_sec - present_time_sec) /
+         (present_time_sec + EPSILON));
+    if (newDiff < min_diff) {
+      min_diff = newDiff;
+      most_proper_traffic = &(bw_traffic);
+      proper_time_sec = key_time_sec;
+    }
+
+    // LOG_DEBUG("%03.6f vs. %03.6f => %.3f",
+    //           present_time_sec, key_time_sec, newDiff);
+  }
+
+#if PRINT_EVERY_ENERGY_COMPARISON == 1
+  LOG_IMP("%4.1fs, %6.1fB/s", proper_time_sec, proper_request_bandwidth);
+#endif
+  return most_proper_traffic;
+}
+
+BWTrafficEntry *
+NMPolicyAppAware::get_most_proper_traffic_time_only(AppTrafficEntry *appEntry) {
+  BWTrafficEntry *most_proper_traffic = NULL;
+  struct timeval present_time;
+  gettimeofday(&present_time, NULL);
+  long long presentTimeUS =
+      (long long)present_time.tv_sec * 1000 * 1000 + present_time.tv_usec;
+  long long recentCustomEventTSUS =
+      (long long)this->mRecentCustomEventTS.tv_sec * 1000 * 1000 +
+      this->mRecentCustomEventTS.tv_usec;
+  float present_time_sec =
+      (float)(presentTimeUS - recentCustomEventTSUS) / 1000000.0f;
+  float min_diff = std::numeric_limits<float>::max();
+  std::vector<BWTrafficEntry> &bwTrafficList = appEntry->getList();
+  float proper_time_sec = 0.0f, proper_request_bandwidth = 0.0f;
+  for (std::vector<BWTrafficEntry>::iterator it = bwTrafficList.begin();
+       it != bwTrafficList.end(); it++) {
+    BWTrafficEntry &bw_traffic = *it;
+    float key_time_sec = bw_traffic.getTimeSec(); // sec
+
+    // if (this->mRequestSpeedDecCount >= DEC_COUNT_THRESHOLD &&
+    //     bw_traffic.isIncrease()) {
+    //   continue;
+    // } else if (this->mRequestSpeedIncCount >= INC_COUNT_THRESHOLD &&
+    //            !bw_traffic.isIncrease()) {
+    //   continue;
+    // }
+
+#define EPSILON 0.000001f
+    float newDiff = (std::abs(key_time_sec - present_time_sec) /
+                     (present_time_sec + EPSILON));
+    if (newDiff < min_diff) {
+      min_diff = newDiff;
+      most_proper_traffic = &(bw_traffic);
+      proper_time_sec = key_time_sec;
+    }
+
+    // LOG_DEBUG("%03.6f vs. %03.6f => %.3f",
+    //           present_time_sec, key_time_sec, newDiff);
+  }
+
+#if PRINT_EVERY_ENERGY_COMPARISON == 1
+  LOG_IMP("%4.1fs", proper_time_sec);
+#endif
+  return most_proper_traffic;
+}
+
+SwitchBehavior NMPolicyAppAware::decide_internal_fg_only_mode(
+    const Stats &stats, bool is_increasable, bool is_decreasable) {
   float present_request_bandwidth = stats.ema_queue_arrival_speed; // B/s
   float present_media_bandwidth =
       present_request_bandwidth + (float)stats.now_queue_data_size; // B/s
@@ -164,50 +275,8 @@ SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
 
   // Step 3. select most proper traffic history
   //         (nearest bandwidth, elapsed time)
-  BWTrafficEntry *most_proper_traffic = NULL;
-  struct timeval present_time;
-  gettimeofday(&present_time, NULL);
-  long long presentTimeUS =
-      (long long)present_time.tv_sec * 1000 * 1000 + present_time.tv_usec;
-  long long recentCustomEventTSUS =
-      (long long)this->mRecentCustomEventTS.tv_sec * 1000 * 1000 +
-      this->mRecentCustomEventTS.tv_usec;
-  float present_time_sec =
-      (float)(presentTimeUS - recentCustomEventTSUS) / 1000000.0f;
-  float min_diff = std::numeric_limits<float>::max();
-  std::vector<BWTrafficEntry> &bwTrafficList = appEntry->getList();
-  float proper_time_sec = 0.0f, proper_request_bandwidth = 0.0f;
-  for (std::vector<BWTrafficEntry>::iterator it = bwTrafficList.begin();
-       it != bwTrafficList.end(); it++) {
-    BWTrafficEntry &bw_traffic = *it;
-    float key_time_sec = bw_traffic.getTimeSec();            // sec
-    float key_request_bandwidth = bw_traffic.getBandwidth(); // B/s
-
-    // if (this->mRequestSpeedDecCount >= DEC_COUNT_THRESHOLD &&
-    //     bw_traffic.isIncrease()) {
-    //   continue;
-    // } else if (this->mRequestSpeedIncCount >= INC_COUNT_THRESHOLD &&
-    //            !bw_traffic.isIncrease()) {
-    //   continue;
-    // }
-
-#define EPSILON 0.000001f
-    float newDiff =
-        (std::abs(key_request_bandwidth - present_request_bandwidth) /
-         (present_request_bandwidth + EPSILON)) *
-        (std::abs(key_time_sec - present_time_sec) /
-         (present_time_sec + EPSILON));
-    if (newDiff < min_diff) {
-      min_diff = newDiff;
-      most_proper_traffic = &(bw_traffic);
-      proper_time_sec = key_time_sec;
-      proper_request_bandwidth = key_request_bandwidth;
-    }
-
-    // LOG_DEBUG("%03.6f %03.6f vs. %03.6f - %03.6f => %.3f",
-    //           present_request_bandwidth, present_time_sec,
-    //           key_request_bandwidth, key_time_sec, newDiff);
-  }
+  BWTrafficEntry *most_proper_traffic =
+      get_most_proper_traffic(appEntry, present_request_bandwidth);
   if (most_proper_traffic == NULL) {
     LOG_WARN("No most proper traffic");
     return kNoBehavior;
@@ -224,8 +293,8 @@ SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
     this->mEnergyRetain = energy_bt;
     this->mEnergySwitch = energy_bt_to_wfd;
 #if PRINT_EVERY_ENERGY_COMPARISON == 1
-    LOG_IMP("%4.1fs, %6.1fB/s => (%f > %f) ? BT : to-WFD", proper_time_sec,
-            proper_request_bandwidth, this->mEnergyRetain, this->mEnergySwitch);
+    LOG_IMP("   => (%f > %f) ? BT : to-WFD", this->mEnergyRetain,
+            this->mEnergySwitch);
 #endif
     if (energy_bt < 0.0f || energy_bt_to_wfd < 0.0f) {
       return kNoBehavior;
@@ -242,8 +311,8 @@ SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
     this->mEnergyRetain = energy_wfd;
     this->mEnergySwitch = energy_wfd_to_bt;
 #if PRINT_EVERY_ENERGY_COMPARISON == 1
-    LOG_IMP("%4.1fs, %6.1fB/s => (%f > %f) ? WFD : to-BT", proper_time_sec,
-            proper_request_bandwidth, this->mEnergyRetain, this->mEnergySwitch);
+    LOG_IMP("  => (%f > %f) ? WFD : to-BT", this->mEnergyRetain,
+            this->mEnergySwitch);
 #endif
     if (energy_wfd < 0.0f || energy_wfd_to_bt < 0.0f) {
       return kNoBehavior;
@@ -255,5 +324,141 @@ SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
   } else {
     // If there is only one network adapter
     return kNoBehavior;
+  }
+}
+
+SwitchBehavior NMPolicyAppAware::decide_internal_fg_bg_mixed_mode(
+    const Stats &stats, bool is_increasable, bool is_decreasable) {
+  float present_request_bandwidth = stats.ema_queue_arrival_speed; // B/s
+  float present_media_bandwidth =
+      present_request_bandwidth + (float)stats.now_queue_data_size; // B/s
+
+  // Filtering increase when idle / decrease when busy
+  if (present_media_bandwidth > IDLE_THRESHOLD && is_decreasable) {
+    // Filtering decrease when busy
+    return kNoBehavior;
+  } else if (present_media_bandwidth < IDLE_THRESHOLD && is_increasable) {
+    // Filtering increase when idle
+    return kNoBehavior;
+  }
+
+  // Step 1. detect increasing/decreasing traffic in series
+  if (present_media_bandwidth < this->mLastMediaBandwidth ||
+      present_media_bandwidth < IDLE_THRESHOLD) {
+    this->mRequestSpeedDecCount++;
+    this->mRequestSpeedIncCount = 0;
+  } else if (present_media_bandwidth > this->mLastMediaBandwidth) {
+    this->mRequestSpeedIncCount++;
+    this->mRequestSpeedDecCount = 0;
+  }
+  this->mLastMediaBandwidth = present_media_bandwidth;
+
+  if (this->mRequestSpeedIncCount < INC_COUNT_THRESHOLD &&
+      this->mRequestSpeedDecCount < DEC_COUNT_THRESHOLD) {
+    return kNoBehavior;
+  }
+
+  // Step 2-a. get traffic prediction entry for the foreground app
+  if (this->mPresentAppName.empty()) {
+    return kNoBehavior;
+  }
+  AppTrafficEntry *fgAppEntry =
+      this->mTrafficPredictionTable.getItem(this->mPresentAppName);
+  if (fgAppEntry == NULL) {
+    LOG_WARN("Cannot find traffic prediction: %s",
+             this->mPresentAppName.c_str());
+    return kNoBehavior;
+  }
+
+  // Step 2-b. get traffic prediction entry for the background app
+  AppTrafficEntry *bgAppEntry = this->mBGAppEntry;
+  assert(bgAppEntry != NULL);
+
+  // Step 3-a. select most proper traffic history for the foreground app
+  //         (elapsed time)
+  BWTrafficEntry *fg_most_proper_traffic =
+      this->get_most_proper_traffic_time_only(fgAppEntry);
+  if (fg_most_proper_traffic == NULL) {
+    LOG_WARN("No most proper traffic for FG app");
+    return kNoBehavior;
+  }
+  std::vector<int> &fg_traffic_seq =
+      fg_most_proper_traffic->getTrafficSequence();
+
+  // Step 3-b. select most proper traffic history for the background app
+  //         (elapsed time)
+  BWTrafficEntry *bg_most_proper_traffic =
+      this->get_most_proper_traffic_time_only(bgAppEntry);
+  if (bg_most_proper_traffic == NULL) {
+    LOG_WARN("No most proper traffic for BG app");
+    return kNoBehavior;
+  }
+  std::vector<int> &bg_traffic_seq =
+      bg_most_proper_traffic->getTrafficSequence();
+
+  // Step 3-c. merge the traffic history
+  std::vector<int> traffic_seq;
+  for (int i = 0; i < fg_traffic_seq.size(); i++) {
+    int total_traffic = fg_traffic_seq.at(i) + bg_traffic_seq.at(i);
+    traffic_seq.push_back(total_traffic);
+  }
+
+  // Step 4. predict energy and final decision
+  int seg_q_length = stats.now_queue_data_size; // Bytes
+  if (is_increasable) {
+    float energy_bt = EnergyPredictor::predictEnergy(seg_q_length, traffic_seq,
+                                                     SCENARIO_BT); // mJ
+    float energy_bt_to_wfd = EnergyPredictor::predictEnergy(
+        seg_q_length, traffic_seq, SCENARIO_BT_TO_WFD); // mJ
+    this->mEnergyRetain = energy_bt;
+    this->mEnergySwitch = energy_bt_to_wfd;
+#if PRINT_EVERY_ENERGY_COMPARISON == 1
+    LOG_IMP("  => (%f > %f) ? BT : to-WFD", this->mEnergyRetain,
+            this->mEnergySwitch);
+#endif
+    if (energy_bt < 0.0f || energy_bt_to_wfd < 0.0f) {
+      return kNoBehavior;
+    } else if (energy_bt > energy_bt_to_wfd) {
+      return kIncreaseAdapter;
+    } else {
+      return kNoBehavior;
+    }
+  } else if (is_decreasable) {
+    float energy_wfd = EnergyPredictor::predictEnergy(seg_q_length, traffic_seq,
+                                                      SCENARIO_WFD); // mJ
+    float energy_wfd_to_bt = EnergyPredictor::predictEnergy(
+        seg_q_length, traffic_seq, SCENARIO_WFD_TO_BT); // mJ
+    this->mEnergyRetain = energy_wfd;
+    this->mEnergySwitch = energy_wfd_to_bt;
+#if PRINT_EVERY_ENERGY_COMPARISON == 1
+    LOG_IMP("  => (%f > %f) ? WFD : to-BT", this->mEnergyRetain,
+            this->mEnergySwitch);
+#endif
+    if (energy_wfd < 0.0f || energy_wfd_to_bt < 0.0f) {
+      return kNoBehavior;
+    } else if (energy_wfd > energy_wfd_to_bt) {
+      return kDecreaseAdapter;
+    } else {
+      return kNoBehavior;
+    }
+  } else {
+    // If there is only one network adapter
+    return kNoBehavior;
+  }
+}
+
+void NMPolicyAppAware::check_background_app_entry(void) {
+  if (this->mIsFGBGMixedMode) {
+    std::vector<AppTrafficEntry> &appTrafficEntries =
+        this->mTrafficPredictionTable.getList();
+    for (std::vector<AppTrafficEntry>::iterator it = appTrafficEntries.begin();
+         it != appTrafficEntries.end(); it++) {
+      AppTrafficEntry *appEntry = &(*it);
+      if (appEntry->getAppName().find("BG") != std::string::npos) {
+        assert(this->mBGAppEntry == NULL);
+        this->mBGAppEntry = appEntry;
+      }
+    }
+    assert(this->mBGAppEntry != NULL);
   }
 }

@@ -57,7 +57,7 @@ DEV_OBJ=$(patsubst %, $(DEV_OBJ_DIR)/%, $(_DEV_OBJ))
 _TOOLS := reset.py set-governor.sh
 TOOLS := $(patsubst %,$(BIN_DIR)/%, $(_TOOLS))
 
-all : outdir tools exp test_energy_predictor
+all : outdir tools exp tests
 
 outdir :
 	$(MKDIR_P) $(BIN_DIR) $(CORE_OBJ_DIR) $(POLICY_OBJ_DIR) $(COMMON_OBJ_DIR) $(DEV_OBJ_DIR)
@@ -71,9 +71,12 @@ $(BIN_DIR)/%.sh : $(TOOLS_DIR)/%.sh
 	cp $< $@
 
 # exp: context_aware_runner
-exp: app_aware_runner bt_only_runner wfd_only_runner app_manual_runner throughput_aware_runner
+exp: app_aware_runner app_aware_runner_with_bg bt_only_runner wfd_only_runner app_manual_runner throughput_aware_runner
 
 app_aware_runner: exp/app_aware_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
+	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
+
+app_aware_runner_with_bg: exp/app_aware_runner_with_bg.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
 context_aware_runner: exp/context_aware_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(CA_POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)

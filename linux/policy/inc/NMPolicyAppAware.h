@@ -29,7 +29,7 @@
 namespace sc {
 class NMPolicyAppAware : public NMPolicy {
 public:
-  NMPolicyAppAware(void) {
+  NMPolicyAppAware(bool is_fg_bg_mixed_mode) {
     this->mPresentAppName.assign("");
     this->mLastMediaBandwidth = 0.0f;
     this->mRequestSpeedIncCount = 0;
@@ -38,8 +38,12 @@ public:
     this->mSerialDecCount = 0;
     this->mEnergyRetain = 0.0f;
     this->mEnergySwitch = 0.0f;
-    this->mTrafficPredictionTable.initialize();
     this->mIsRecentWfdOn = false;
+
+    this->mIsFGBGMixedMode = is_fg_bg_mixed_mode;
+    this->mBGAppEntry = NULL;
+    this->mTrafficPredictionTable.initialize();
+    this->check_background_app_entry();
 
     this->reset_recent_switch_ts();
   }
@@ -55,8 +59,20 @@ public:
 private:
   SwitchBehavior decide_internal(const Stats &stats, bool is_increasable,
                                  bool is_decreasable);
+  BWTrafficEntry *get_most_proper_traffic(AppTrafficEntry *appEntry,
+                                          float present_request_bandwidth);
+  BWTrafficEntry *get_most_proper_traffic_time_only(AppTrafficEntry *appEntry);
+
+  SwitchBehavior decide_internal_fg_only_mode(const Stats &stats,
+                                              bool is_increasable,
+                                              bool is_decreasable);
+  SwitchBehavior decide_internal_fg_bg_mixed_mode(const Stats &stats,
+                                                  bool is_increasable,
+                                                  bool is_decreasable);
   void update_recent_switch_ts(void);
   void reset_recent_switch_ts(void);
+
+  void check_background_app_entry(void);
 
 private:
   std::string mPresentAppName;
@@ -71,6 +87,9 @@ private:
   float mEnergyRetain;
   float mEnergySwitch;
   bool mIsRecentWfdOn;
+
+  bool mIsFGBGMixedMode;
+  AppTrafficEntry *mBGAppEntry;
 
   struct timeval mRecentSwitchTS;
 

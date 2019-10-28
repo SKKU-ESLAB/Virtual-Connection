@@ -141,31 +141,89 @@ void TestRunner::send_test_data() {
   free(temp_buf);
 }
 
-#define MAX_SEC 90
+#define MAX_SEC 30
 void TestRunner::send_workload(void) {
   this->mSendDataSize.start_measure_speed();
-  int max_iter = MAX_SEC;
-  int sleep_us = 1000 * 1000;
-  int data_size = this->mThroughput;
-  // int max_iter = (this->mThroughput <= 5120) ? MAX_SEC * (this->mThroughput /
-  // 1024) : MAX_SEC; int sleep_us = (this->mThroughput <= 5120) ? 1000 * 1000 /
-  // (this->mThroughput / 1024) : 1000 * 1000; int data_size =
-  //     (this->mThroughput <= 5120) ? 1024 : this->mThroughput;
 
-  for (int i = 0; i < max_iter; i++) {
-    // Allocate data buffer
-    char *data_buffer = (char *)calloc(data_size, sizeof(char));
-    if (data_buffer == NULL) {
-      fprintf(stderr, "[Error] Data buffer allocation failed: size=%d\n",
-              data_size);
-      return;
+  if (this->mThroughput > 0) {
+    // Original test runner
+    int max_iter = MAX_SEC;
+    int sleep_us = 1000 * 1000;
+    int data_size = this->mThroughput;
+
+    for (int i = 0; i < max_iter; i++) {
+      // Allocate data buffer
+      char *data_buffer = (char *)calloc(data_size, sizeof(char));
+      if (data_buffer == NULL) {
+        fprintf(stderr, "[Error] Data buffer allocation failed: size=%d\n",
+                data_size);
+        return;
+      }
+
+      // Send data
+      TestRunner::generate_simple_string(data_buffer, data_size);
+      sc::send(data_buffer, data_size);
+      free(data_buffer);
+      ::usleep(sleep_us);
     }
+  } else {
+    // One-shot test runner
+    int sleep_us = 1000 * 1000; // 1sec
+    int data_size = 512;
+#define MAX_DATA_SIZE 4 * 1024 * 1024  // 4MB
+#define MAX_SLEEP_US_1 1 * 1000 * 1000 // 1sec
+#define MAX_SLEEP_US_2 4 * 1000 * 1000 // 4sec
+    for (int data_size = 512; data_size <= MAX_DATA_SIZE; data_size *= 2) {
+      for (int sleep_us = 100 * 1000; sleep_us <= MAX_SLEEP_US_1;
+           sleep_us += 100 * 1000) {
+        int max_iter = MAX_SEC * 1000 * 1000 / sleep_us;
+        printf("Data size: %dB / Data interval: %dB\n");
+        for (int i = 0; i < max_iter; i++) {
+          // Allocate data buffer
+          char *data_buffer = (char *)calloc(data_size, sizeof(char));
+          if (data_buffer == NULL) {
+            fprintf(stderr, "[Error] Data buffer allocation failed: size=%d\n",
+                    data_size);
+            return;
+          }
 
-    // Send data
-    TestRunner::generate_simple_string(data_buffer, data_size);
-    sc::send(data_buffer, data_size);
-    free(data_buffer);
-    ::usleep(sleep_us);
+          // Send data
+          TestRunner::generate_simple_string(data_buffer, data_size);
+          sc::send(data_buffer, data_size);
+          free(data_buffer);
+          ::usleep(sleep_us);
+        }
+
+#define INTER_WORKLOAD_SLEEP_US 15 * 1000 * 1000 // 15sec
+        ::usleep(INTER_WORKLOAD_SLEEP_US);
+        printf("Sleeping...\n");
+      }
+
+      for (int sleep_us = 1000 * 1000; sleep_us <= MAX_SLEEP_US_2;
+           sleep_us += 1000 * 1000) {
+        int max_iter = MAX_SEC * 1000 * 1000 / sleep_us;
+        printf("Data size: %dB / Data interval: %dB\n");
+        for (int i = 0; i < max_iter; i++) {
+          // Allocate data buffer
+          char *data_buffer = (char *)calloc(data_size, sizeof(char));
+          if (data_buffer == NULL) {
+            fprintf(stderr, "[Error] Data buffer allocation failed: size=%d\n",
+                    data_size);
+            return;
+          }
+
+          // Send data
+          TestRunner::generate_simple_string(data_buffer, data_size);
+          sc::send(data_buffer, data_size);
+          free(data_buffer);
+          ::usleep(sleep_us);
+        }
+
+#define INTER_WORKLOAD_SLEEP_US 15 * 1000 * 1000 // 15sec
+        ::usleep(INTER_WORKLOAD_SLEEP_US);
+        printf("Sleeping...\n");
+      }
+    }
   }
 
   this->mSendDataSize.stop_measure_speed();

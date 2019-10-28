@@ -38,9 +38,9 @@ void NMPolicyThroughputAware::on_custom_event(std::string &event_description) {
 }
 
 #define INCREASE_THRESHOLD_BUFFER_LENGTH_BYTES 10 * 1000 // 10KB
-#define INCREASE_COUNT_THRESHOLD 50                      // 5sec
+#define INCREASE_COUNT_THRESHOLD 5                      // 500ms
 #define DECREASE_THRESHOLD_BANDWIDTH_BYTES_PER_SEC 62500 // 500kbps = 62.5KB/s
-#define DECREASE_COUNT_THRESHOLD 5                       // 500ms
+#define DECREASE_COUNT_THRESHOLD 50                       // 5sec
 
 SwitchBehavior NMPolicyThroughputAware::decide(const Stats &stats,
                                                bool is_increasable,
@@ -50,6 +50,7 @@ SwitchBehavior NMPolicyThroughputAware::decide(const Stats &stats,
       this->mIncreaseCount++;
       if (this->mIncreaseCount >= INCREASE_COUNT_THRESHOLD) {
         this->mIncreaseCount = 0;
+        this->mWFDMode = true;
         return kIncreaseAdapter;
       } else {
         return kNoBehavior;
@@ -59,10 +60,11 @@ SwitchBehavior NMPolicyThroughputAware::decide(const Stats &stats,
       return kNoBehavior;
     }
   } else if (is_decreasable) {
-    if (stats.ema_media_rtt < DECREASE_THRESHOLD_BANDWIDTH_BYTES_PER_SEC) {
+    if (stats.now_total_bandwidth < DECREASE_THRESHOLD_BANDWIDTH_BYTES_PER_SEC) {
       this->mDecreaseCount++;
       if (this->mDecreaseCount >= DECREASE_COUNT_THRESHOLD) {
         this->mDecreaseCount = 0;
+        this->mWFDMode = false;
         return kDecreaseAdapter;
       } else {
         return kNoBehavior;
