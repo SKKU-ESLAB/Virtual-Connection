@@ -22,7 +22,7 @@
 #include "../common/inc/ChildProcess.h"
 #include "../configs/PathConfig.h"
 
-#include "../policy/inc/NMPolicyAppAware.h"
+#include "../policy/inc/NMPolicyHistoryBased.h"
 using namespace sc;
 
 #include <string>
@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
   
   printf("App-aware policy with FG+BG mode\n");
 
-  NMPolicyAppAware *switch_policy = new NMPolicyAppAware(true);
+  NMPolicyHistoryBased *switch_policy = new NMPolicyHistoryBased(true);
   trace_runner->start(switch_policy);
 
   delete switch_policy;

@@ -17,14 +17,14 @@
  * limitations under the License.
  */
 
-#ifndef __CONFIG_CONTEXT_AWARE_POLICY_H__
-#define __CONFIG_CONTEXT_AWARE_POLICY_H__
+#ifndef __CONFIG_history_based_POLICY_H__
+#define __CONFIG_history_based_POLICY_H__
 
 #define INC_COUNT_THRESHOLD 10
 #define DEC_COUNT_THRESHOLD 10
 
 #define IDLE_THRESHOLD 5 * 1000 // 5KB/s
 
-#define CONTEXT_AWARE_TPT_FILENAME "context_aware_tpt.txt"
+#define TRAFFIC_HISTORY_TABLE_FILENAME "traffic_history_table.txt"
 
-#endif /* defined(__CONFIG_CONTEXT_AWARE_POLICY_H__) */
+#endif /* defined(__CONFIG_history_based_POLICY_H__) */

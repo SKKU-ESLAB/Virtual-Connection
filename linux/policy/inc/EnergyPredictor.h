@@ -51,7 +51,7 @@
 /* Power regression model */
 #define RM_BT_B0 20.56f
 #define RM_BT_B1 1.756f
-#define RM_BT_B2 -0.001641
+#define RM_BT_B2 -0.001641f
 
 #define RM_WFD_B0 143.8f
 #define RM_WFD_B1 0.1964f

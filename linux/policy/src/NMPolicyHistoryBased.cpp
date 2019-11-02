@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include "../inc/NMPolicyAppAware.h"
+#include "../inc/NMPolicyHistoryBased.h"
 #include "../inc/EnergyPredictor.h"
 
-#include "../inc/ConfigAppAwarePolicy.h"
+#include "../inc/ConfigHistoryBasedPolicy.h"
 
 #include "../../common/inc/DebugLog.h"
 
@@ -33,7 +33,7 @@
 
 using namespace sc;
 
-std::string NMPolicyAppAware::get_stats_string(void) {
+std::string NMPolicyHistoryBased::get_stats_string(void) {
   char recent_adapter_name[50];
   if (mIsRecentWfdOn) {
     snprintf(recent_adapter_name, 50, "WFD");
@@ -50,7 +50,7 @@ std::string NMPolicyAppAware::get_stats_string(void) {
   return stats_string;
 }
 
-void NMPolicyAppAware::on_custom_event(std::string &event_description) {
+void NMPolicyHistoryBased::on_custom_event(std::string &event_description) {
   // change current app name (event_description = "app_name")
   this->mPresentAppName.assign(event_description);
 
@@ -61,7 +61,7 @@ void NMPolicyAppAware::on_custom_event(std::string &event_description) {
 
 #define SERIAL_INC_COUNT_THRESHOLD 3
 #define SERIAL_DEC_COUNT_THRESHOLD 3
-SwitchBehavior NMPolicyAppAware::decide(const Stats &stats, bool is_increasable,
+SwitchBehavior NMPolicyHistoryBased::decide(const Stats &stats, bool is_increasable,
                                         bool is_decreasable) {
   // No decision after switch for prediction window
   if (this->mRecentSwitchTS.tv_sec != 0 && this->mRecentSwitchTS.tv_usec != 0) {
@@ -110,16 +110,16 @@ SwitchBehavior NMPolicyAppAware::decide(const Stats &stats, bool is_increasable,
   return behavior;
 }
 
-void NMPolicyAppAware::update_recent_switch_ts(void) {
+void NMPolicyHistoryBased::update_recent_switch_ts(void) {
   gettimeofday(&this->mRecentSwitchTS, NULL);
 }
 
-void NMPolicyAppAware::reset_recent_switch_ts(void) {
+void NMPolicyHistoryBased::reset_recent_switch_ts(void) {
   this->mRecentSwitchTS.tv_sec = 0;
   this->mRecentSwitchTS.tv_usec = 0;
 }
 
-SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
+SwitchBehavior NMPolicyHistoryBased::decide_internal(const Stats &stats,
                                                  bool is_increasable,
                                                  bool is_decreasable) {
   if (this->mIsFGBGMixedMode) {
@@ -132,7 +132,7 @@ SwitchBehavior NMPolicyAppAware::decide_internal(const Stats &stats,
 }
 
 BWTrafficEntry *
-NMPolicyAppAware::get_most_proper_traffic(AppTrafficEntry *appEntry,
+NMPolicyHistoryBased::get_most_proper_traffic(AppTrafficEntry *appEntry,
                                           float present_request_bandwidth) {
   BWTrafficEntry *most_proper_traffic = NULL;
   struct timeval present_time;
@@ -184,7 +184,7 @@ NMPolicyAppAware::get_most_proper_traffic(AppTrafficEntry *appEntry,
 }
 
 BWTrafficEntry *
-NMPolicyAppAware::get_most_proper_traffic_time_only(AppTrafficEntry *appEntry) {
+NMPolicyHistoryBased::get_most_proper_traffic_time_only(AppTrafficEntry *appEntry) {
   BWTrafficEntry *most_proper_traffic = NULL;
   struct timeval present_time;
   gettimeofday(&present_time, NULL);
@@ -230,7 +230,7 @@ NMPolicyAppAware::get_most_proper_traffic_time_only(AppTrafficEntry *appEntry) {
   return most_proper_traffic;
 }
 
-SwitchBehavior NMPolicyAppAware::decide_internal_fg_only_mode(
+SwitchBehavior NMPolicyHistoryBased::decide_internal_fg_only_mode(
     const Stats &stats, bool is_increasable, bool is_decreasable) {
   float present_request_bandwidth = stats.ema_queue_arrival_speed; // B/s
   float present_media_bandwidth =
@@ -327,7 +327,7 @@ SwitchBehavior NMPolicyAppAware::decide_internal_fg_only_mode(
   }
 }
 
-SwitchBehavior NMPolicyAppAware::decide_internal_fg_bg_mixed_mode(
+SwitchBehavior NMPolicyHistoryBased::decide_internal_fg_bg_mixed_mode(
     const Stats &stats, bool is_increasable, bool is_decreasable) {
   float present_request_bandwidth = stats.ema_queue_arrival_speed; // B/s
   float present_media_bandwidth =
@@ -447,7 +447,7 @@ SwitchBehavior NMPolicyAppAware::decide_internal_fg_bg_mixed_mode(
   }
 }
 
-void NMPolicyAppAware::check_background_app_entry(void) {
+void NMPolicyHistoryBased::check_background_app_entry(void) {
   if (this->mIsFGBGMixedMode) {
     std::vector<AppTrafficEntry> &appTrafficEntries =
         this->mTrafficPredictionTable.getList();

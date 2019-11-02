@@ -1,5 +1,5 @@
 BIN_DIR=./bin
-
+TEST_BIN_DIR=./tests_bin
 TOOLS_DIR=./tools
 
 CORE_SRC_DIR=./core/src
@@ -32,13 +32,10 @@ CORE_OBJ=$(patsubst %, $(CORE_OBJ_DIR)/%, $(_CORE_OBJ))
 $(POLICY_OBJ_DIR)/%.o: $(POLICY_SRC_DIR)/%.cpp
 	$(CC) -o $@ -c $< $(FLAG) $(LIB)
 
-_POLICY_OBJ=AppAwareTPT.o EnergyPredictor.o \
-						NMPolicyManual.o NMPolicyAppAware.o NMPolicyAppManual.o NMPolicyThroughputAware.o \
+_POLICY_OBJ=TrafficHistoryTable.o EnergyPredictor.o \
+						NMPolicyManual.o NMPolicyHistoryBased.o NMPolicyAppManual.o NMPolicyThroughputAware.o \
 						NMPolicyBtOnly.o NMPolicyWfdOnly.o
 POLICY_OBJ=$(patsubst %, $(POLICY_OBJ_DIR)/%, $(_POLICY_OBJ))
-
-_CA_POLICY_OBJ=ContextAwareTPT.o EnergyPredictor.o NMPolicyContextAware.o NMPolicyManual.o
-CA_POLICY_OBJ=$(patsubst %, $(POLICY_OBJ_DIR)/%, $(_CA_POLICY_OBJ))
 
 $(COMMON_OBJ_DIR)/%.o: $(COMMON_SRC_DIR)/%.cpp
 	$(CC) -o $@ -c $< $(FLAG) $(LIB)
@@ -60,7 +57,7 @@ TOOLS := $(patsubst %,$(BIN_DIR)/%, $(_TOOLS))
 all : outdir tools exp tests
 
 outdir :
-	$(MKDIR_P) $(BIN_DIR) $(CORE_OBJ_DIR) $(POLICY_OBJ_DIR) $(COMMON_OBJ_DIR) $(DEV_OBJ_DIR)
+	$(MKDIR_P) $(BIN_DIR) $(TEST_BIN_DIR) $(CORE_OBJ_DIR) $(POLICY_OBJ_DIR) $(COMMON_OBJ_DIR) $(DEV_OBJ_DIR)
 
 tools : $(TOOLS)
 
@@ -70,16 +67,12 @@ $(BIN_DIR)/%.py : $(TOOLS_DIR)/%.py
 $(BIN_DIR)/%.sh : $(TOOLS_DIR)/%.sh
 	cp $< $@
 
-# exp: context_aware_runner
-exp: app_aware_runner app_aware_runner_with_bg bt_only_runner wfd_only_runner app_manual_runner throughput_aware_runner
+exp: history_based_runner history_based_runner_with_bg bt_only_runner wfd_only_runner app_manual_runner throughput_aware_runner
 
-app_aware_runner: exp/app_aware_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
+history_based_runner: exp/history_based_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
-app_aware_runner_with_bg: exp/app_aware_runner_with_bg.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
-	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
-
-context_aware_runner: exp/context_aware_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(CA_POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
+history_based_runner_with_bg: exp/history_based_runner_with_bg.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
 app_manual_runner: exp/app_manual_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
@@ -97,25 +90,25 @@ wfd_only_runner: exp/wfd_only_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLIC
 tests: comm_init_test wpa_cli_test udhcpd_test network_tester idle_tester switch_tester test_energy_predictor
 
 wpa_cli_test: tests/wpa_cli.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
-	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB) 
+	$(CC) -o $(TEST_BIN_DIR)/$@ $^ $(FLAG) $(LIB) 
 
 udhcpd_test: tests/udhcpd.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
-	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB) 
+	$(CC) -o $(TEST_BIN_DIR)/$@ $^ $(FLAG) $(LIB) 
 
 comm_init_test: tests/comm_init.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
-	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB) 
+	$(CC) -o $(TEST_BIN_DIR)/$@ $^ $(FLAG) $(LIB) 
 
 network_tester: tests/network_tester.cpp tests/TestRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
-	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
+	$(CC) -o $(TEST_BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
 idle_tester: tests/idle_tester.cpp tests/IdleTestRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
-	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
+	$(CC) -o $(TEST_BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
 switch_tester: tests/switch_tester.cpp tests/SwitchTestRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
-	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
+	$(CC) -o $(TEST_BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
 test_energy_predictor: tests/test_energy_predictor.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
-	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
+	$(CC) -o $(TEST_BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
 clean:
 	rm -rf ./obj/*.o ./bin/* ./device/obj/*.o || true

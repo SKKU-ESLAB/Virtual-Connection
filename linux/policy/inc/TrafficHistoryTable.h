@@ -16,8 +16,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __APP_AWARE_TPT_H__
-#define __APP_AWARE_TPT_H__
+#ifndef __TRAFFIC_HISTORY_TABLE_H__
+#define __TRAFFIC_HISTORY_TABLE_H__
 
 #include <string>
 #include <vector>
@@ -79,9 +79,9 @@ private:
   std::vector<BWTrafficEntry> mBWTrafficList;
 };
 
-class AppAwareTPT {
+class TrafficHistoryTable {
 public:
-  AppAwareTPT(void) {}
+  TrafficHistoryTable(void) {}
   void initialize(void);
 
   AppTrafficEntry *getItem(std::string app_name) {
@@ -105,7 +105,7 @@ public:
 
 private:
   std::vector<AppTrafficEntry> mAppTrafficList;
-}; /* class AppAwareTPT */
+}; /* class TrafficHistoryTable */
 } /* namespace sc */
 
-#endif /* defined(__APP_AWARE_TPT_H__) */
+#endif /* defined(__TRAFFIC_HISTORY_TABLE_H__) */

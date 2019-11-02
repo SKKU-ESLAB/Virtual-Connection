@@ -17,23 +17,20 @@
  * limitations under the License.
  */
 
-#ifndef __NM_POLICY_CONTEXT_AWARE_H__
-#define __NM_POLICY_CONTEXT_AWARE_H__
+#ifndef __NM_POLICY_history_based_H__
+#define __NM_POLICY_history_based_H__
 
 #include "../../core/inc/NMPolicy.h"
-#include "../inc/ContextAwareTPT.h"
+#include "../inc/TrafficHistoryTable.h"
 
 #include <string>
 #include <sys/time.h>
 
 namespace sc {
-class NMPolicyContextAware : public NMPolicy {
+class NMPolicyHistoryBased : public NMPolicy {
 public:
-  NMPolicyContextAware(void) {
-    this->mPresentX = 0.0f;
-    this->mPresentY = 0.0f;
-    this->mPresentZ = 0.0f;
-
+  NMPolicyHistoryBased(bool is_fg_bg_mixed_mode) {
+    this->mPresentAppName.assign("");
     this->mLastMediaBandwidth = 0.0f;
     this->mRequestSpeedIncCount = 0;
     this->mRequestSpeedDecCount = 0;
@@ -41,15 +38,18 @@ public:
     this->mSerialDecCount = 0;
     this->mEnergyRetain = 0.0f;
     this->mEnergySwitch = 0.0f;
-    this->mTrafficPredictionTable.initialize();
     this->mIsRecentWfdOn = false;
 
-    this->reset_zero_point_ts();
+    this->mIsFGBGMixedMode = is_fg_bg_mixed_mode;
+    this->mBGAppEntry = NULL;
+    this->mTrafficPredictionTable.initialize();
+    this->check_background_app_entry();
+
     this->reset_recent_switch_ts();
   }
   virtual std::string get_stats_string(void);
   virtual std::string get_name(void) {
-    std::string str("Context-aware");
+    std::string str("App-aware");
     return str;
   }
   virtual void on_custom_event(std::string &event_description);
@@ -59,16 +59,23 @@ public:
 private:
   SwitchBehavior decide_internal(const Stats &stats, bool is_increasable,
                                  bool is_decreasable);
+  BWTrafficEntry *get_most_proper_traffic(AppTrafficEntry *appEntry,
+                                          float present_request_bandwidth);
+  BWTrafficEntry *get_most_proper_traffic_time_only(AppTrafficEntry *appEntry);
+
+  SwitchBehavior decide_internal_fg_only_mode(const Stats &stats,
+                                              bool is_increasable,
+                                              bool is_decreasable);
+  SwitchBehavior decide_internal_fg_bg_mixed_mode(const Stats &stats,
+                                                  bool is_increasable,
+                                                  bool is_decreasable);
   void update_recent_switch_ts(void);
   void reset_recent_switch_ts(void);
 
-  void update_zero_point_ts();
-  void reset_zero_point_ts(void);
+  void check_background_app_entry(void);
 
 private:
-  float mPresentX;
-  float mPresentY;
-  float mPresentZ;
+  std::string mPresentAppName;
 
   float mLastMediaBandwidth;
   int mRequestSpeedIncCount;
@@ -81,11 +88,13 @@ private:
   float mEnergySwitch;
   bool mIsRecentWfdOn;
 
-  struct timeval mZeroPointTS;
+  bool mIsFGBGMixedMode;
+  AppTrafficEntry *mBGAppEntry;
+
   struct timeval mRecentSwitchTS;
 
-  ContextAwareTPT mTrafficPredictionTable;
-}; /* class NMPolicyContextAware */
+  TrafficHistoryTable mTrafficPredictionTable;
+}; /* class NMPolicyHistoryBased */
 } /* namespace sc */
 
-#endif /* defined(__NM_POLICY_CONTEXT_AWARE_H__) */
+#endif /* defined(__NM_POLICY_history_based_H__) */

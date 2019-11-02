@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include "../inc/AppAwareTPT.h"
+#include "../inc/TrafficHistoryTable.h"
 
-#include "../inc/ConfigAppAwarePolicy.h"
+#include "../inc/ConfigHistoryBasedPolicy.h"
 
 #include "../../common/inc/DebugLog.h"
 #include "../../common/inc/csv.h"
@@ -30,7 +30,7 @@
 
 using namespace sc;
 
-class AppAwareTPTReader {
+class TrafficHistoryTableReader {
 public:
   void read_header(void) {
     this->mCSVReader->read_header(io::ignore_extra_column, "AppName", "TimeSec",
@@ -61,7 +61,7 @@ public:
     return ret;
   }
 
-  AppAwareTPTReader(std::string filename) {
+  TrafficHistoryTableReader(std::string filename) {
     this->mCSVReader =
         new io::CSVReader<5, io::trim_chars<>,
                           io::double_quote_escape<',', '\"'>>(filename.c_str());
@@ -72,10 +72,10 @@ private:
       *mCSVReader;
 };
 
-// Read AppAwareTPT file and construct the data structure
-void AppAwareTPT::initialize(void) {
-  std::string filename(APP_AWARE_TPT_FILENAME);
-  AppAwareTPTReader reader(filename);
+// Read TrafficHistoryTable file and construct the data structure
+void TrafficHistoryTable::initialize(void) {
+  std::string filename(TRAFFIC_HISTORY_TABLE_FILENAME);
+  TrafficHistoryTableReader reader(filename);
   reader.read_header();
 
   int num_rows = 0;
@@ -103,6 +103,6 @@ void AppAwareTPT::initialize(void) {
   }
 
   if (num_rows <= 0) {
-    LOG_WARN("No data on TPT file!: %s", APP_AWARE_TPT_FILENAME);
+    LOG_WARN("No data on traffic history table file!: %s", TRAFFIC_HISTORY_TABLE_FILENAME);
   }
 }
