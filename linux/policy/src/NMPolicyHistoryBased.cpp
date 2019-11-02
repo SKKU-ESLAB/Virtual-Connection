@@ -61,8 +61,9 @@ void NMPolicyHistoryBased::on_custom_event(std::string &event_description) {
 
 #define SERIAL_INC_COUNT_THRESHOLD 3
 #define SERIAL_DEC_COUNT_THRESHOLD 3
-SwitchBehavior NMPolicyHistoryBased::decide(const Stats &stats, bool is_increasable,
-                                        bool is_decreasable) {
+SwitchBehavior NMPolicyHistoryBased::decide(const Stats &stats,
+                                            bool is_increasable,
+                                            bool is_decreasable) {
   // No decision after switch for prediction window
   if (this->mRecentSwitchTS.tv_sec != 0 && this->mRecentSwitchTS.tv_usec != 0) {
     struct timeval present_tv;
@@ -120,8 +121,8 @@ void NMPolicyHistoryBased::reset_recent_switch_ts(void) {
 }
 
 SwitchBehavior NMPolicyHistoryBased::decide_internal(const Stats &stats,
-                                                 bool is_increasable,
-                                                 bool is_decreasable) {
+                                                     bool is_increasable,
+                                                     bool is_decreasable) {
   if (this->mIsFGBGMixedMode) {
     return this->decide_internal_fg_bg_mixed_mode(stats, is_increasable,
                                                   is_decreasable);
@@ -131,61 +132,9 @@ SwitchBehavior NMPolicyHistoryBased::decide_internal(const Stats &stats,
   }
 }
 
-BWTrafficEntry *
-NMPolicyHistoryBased::get_most_proper_traffic(AppTrafficEntry *appEntry,
-                                          float present_request_bandwidth) {
-  BWTrafficEntry *most_proper_traffic = NULL;
-  struct timeval present_time;
-  gettimeofday(&present_time, NULL);
-  long long presentTimeUS =
-      (long long)present_time.tv_sec * 1000 * 1000 + present_time.tv_usec;
-  long long recentCustomEventTSUS =
-      (long long)this->mRecentCustomEventTS.tv_sec * 1000 * 1000 +
-      this->mRecentCustomEventTS.tv_usec;
-  float present_time_sec =
-      (float)(presentTimeUS - recentCustomEventTSUS) / 1000000.0f;
-  float min_diff = std::numeric_limits<float>::max();
-  std::vector<BWTrafficEntry> &bwTrafficList = appEntry->getList();
-  float proper_time_sec = 0.0f, proper_request_bandwidth = 0.0f;
-  for (std::vector<BWTrafficEntry>::iterator it = bwTrafficList.begin();
-       it != bwTrafficList.end(); it++) {
-    BWTrafficEntry &bw_traffic = *it;
-    float key_time_sec = bw_traffic.getTimeSec();            // sec
-    float key_request_bandwidth = bw_traffic.getBandwidth(); // B/s
-
-    // if (this->mRequestSpeedDecCount >= DEC_COUNT_THRESHOLD &&
-    //     bw_traffic.isIncrease()) {
-    //   continue;
-    // } else if (this->mRequestSpeedIncCount >= INC_COUNT_THRESHOLD &&
-    //            !bw_traffic.isIncrease()) {
-    //   continue;
-    // }
-
-#define EPSILON 0.000001f
-    float newDiff =
-        ((std::abs(key_request_bandwidth - present_request_bandwidth) /
-          (present_request_bandwidth + EPSILON)) *
-         std::abs(key_time_sec - present_time_sec) /
-         (present_time_sec + EPSILON));
-    if (newDiff < min_diff) {
-      min_diff = newDiff;
-      most_proper_traffic = &(bw_traffic);
-      proper_time_sec = key_time_sec;
-    }
-
-    // LOG_DEBUG("%03.6f vs. %03.6f => %.3f",
-    //           present_time_sec, key_time_sec, newDiff);
-  }
-
-#if PRINT_EVERY_ENERGY_COMPARISON == 1
-  LOG_IMP("%4.1fs, %6.1fB/s", proper_time_sec, proper_request_bandwidth);
-#endif
-  return most_proper_traffic;
-}
-
-BWTrafficEntry *
-NMPolicyHistoryBased::get_most_proper_traffic_time_only(AppTrafficEntry *appEntry) {
-  BWTrafficEntry *most_proper_traffic = NULL;
+TrafficEntry *
+NMPolicyHistoryBased::get_most_proper_traffic(AppEntry *appEntry) {
+  TrafficEntry *most_proper_traffic = NULL;
   struct timeval present_time;
   gettimeofday(&present_time, NULL);
   long long presentTimeUS =
@@ -275,8 +224,7 @@ SwitchBehavior NMPolicyHistoryBased::decide_internal_fg_only_mode(
 
   // Step 3. select most proper traffic history
   //         (nearest bandwidth, elapsed time)
-  BWTrafficEntry *most_proper_traffic =
-      get_most_proper_traffic(appEntry, present_request_bandwidth);
+  BWTrafficEntry *most_proper_traffic = get_most_proper_traffic(appEntry);
   if (most_proper_traffic == NULL) {
     LOG_WARN("No most proper traffic");
     return kNoBehavior;
@@ -377,7 +325,7 @@ SwitchBehavior NMPolicyHistoryBased::decide_internal_fg_bg_mixed_mode(
   // Step 3-a. select most proper traffic history for the foreground app
   //         (elapsed time)
   BWTrafficEntry *fg_most_proper_traffic =
-      this->get_most_proper_traffic_time_only(fgAppEntry);
+      this->get_most_proper_traffic(fgAppEntry);
   if (fg_most_proper_traffic == NULL) {
     LOG_WARN("No most proper traffic for FG app");
     return kNoBehavior;

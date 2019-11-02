@@ -19,25 +19,28 @@
 #ifndef __TRAFFIC_HISTORY_TABLE_H__
 #define __TRAFFIC_HISTORY_TABLE_H__
 
+#include <cmath>
+#include <limits>
+#include <map>
 #include <string>
 #include <vector>
 
 namespace sc {
+/*
+ * TrafficHistoryTable
+ *  =(map; id=string appName)=> AppEntry
+ *  =(map; id=int eventType)=> EventTypeEntry
+ *  =(vector)=> TrafficEntry
+ */
 
-class BWTrafficEntry {
+class TrafficEntry {
 public:
-  BWTrafficEntry(float time_sec, float bandwidth, bool is_increase,
-                 std::vector<int> traffic_sequence) {
+  TrafficEntry(float mTimeSec, std::vector<int> traffic_sequence) {
     this->mTimeSec = time_sec;
-    this->mBandwidth = bandwidth;
-    this->mIsIncrease = is_increase;
     this->mTrafficSequence.assign(traffic_sequence.begin(),
                                   traffic_sequence.end());
   }
-
   float getTimeSec() { return this->mTimeSec; }
-  float getBandwidth() { return this->mBandwidth; }
-  bool isIncrease() { return this->mIsIncrease; }
   std::vector<int> &getTrafficSequence() { return this->mTrafficSequence; }
   void pushTraffic(int trafficEntry) {
     this->mTrafficSequence.push_back(trafficEntry);
@@ -45,66 +48,93 @@ public:
 
 private:
   float mTimeSec;
-  float mBandwidth;
-  bool mIsIncrease;
   std::vector<int> mTrafficSequence;
-};
+}; /* class TrafficEntry */
 
-class AppTrafficEntry {
+class EventTypeEntry {
 public:
-  AppTrafficEntry(std::string app_name) { this->mAppName = app_name; }
-  std::string getAppName() { return this->mAppName; }
+  EventTypeEntry(int event_type) { this->mEventType = event_type; }
+  int getEventType() { return this->mEventType; }
 
-  BWTrafficEntry *getItem(float bandwidth) {
-    for (std::vector<BWTrafficEntry>::iterator it =
-             this->mBWTrafficList.begin();
-         it != this->mBWTrafficList.end(); it++) {
-      BWTrafficEntry *entry = &(*it);
-      int _bandwidth = entry->getBandwidth();
-      if (bandwidth == _bandwidth) {
-        return entry;
+  TrafficEntry *findItem(float time_sec) {
+    TrafficEntry *closest_entry = NULL;
+    float closest_time_diff = std::numeric_limits<float>::max();
+
+    for (std::vector<TrafficEntry>::iterator it = this->mTrafficList.begin();
+         it != this->mTrafficList.end(); it++) {
+      TrafficEntry *entry = &(*it);
+      float entry_time_diff = abs(entry_time_sec - entry->getTimeSec());
+      if (closest_time_diff > entry_time_diff) {
+        closest_entry = entry;
+        closest_time_diff = entry_time_diff;
       }
     }
-    return NULL;
+    return closest_entry;
   }
 
-  void addItem(BWTrafficEntry &bwTrafficEntry) {
-    this->mBWTrafficList.push_back(bwTrafficEntry);
+  void addItem(TrafficEntry &trafficEntry) {
+    this->mTrafficList.push_back(trafficEntry);
   }
 
-  std::vector<BWTrafficEntry> &getList() { return this->mBWTrafficList; }
+  std::vector<TrafficEntry> &getMap() { return this->mTrafficList; }
+
+private:
+  int mEventType;
+  std::vector<TrafficEntry> mTrafficList;
+}; /* class EventTypeEntry */
+
+class AppEntry {
+public:
+  AppEntry(std::string app_name) { this->mAppName = app_name; }
+  std::string getAppName() { return this->mAppName; }
+
+  EventTypeEntry *getItem(int eventType) {
+    std::map<std::string, EventTypeEntry>::iterator foundItem =
+        this->mEventTypeMap.find(eventType);
+    if (foundItem == this->mEventTypeMap.end()) {
+      return NULL;
+    } else {
+      return &(foundItem->second);
+    }
+  }
+
+  void addItem(EventTypeEntry &eventTypeEntry) {
+    int eventType = eventTypeEntry.eventType;
+    this->mEventTypeMap.insert(
+        std::pair<int, EventTypeEntry>(eventType, eventTypeEntry));
+  }
+
+  std::map<int, EventTypeEntry> &getMap() { return this->mEventTypeMap; }
 
 private:
   std::string mAppName;
-  std::vector<BWTrafficEntry> mBWTrafficList;
-};
+  std::map<int, EventTypeEntry> mEventTypeMap;
+}; /* class AppEntry */
 
 class TrafficHistoryTable {
 public:
   TrafficHistoryTable(void) {}
   void initialize(void);
 
-  AppTrafficEntry *getItem(std::string app_name) {
-    for (std::vector<AppTrafficEntry>::iterator it =
-             this->mAppTrafficList.begin();
-         it != this->mAppTrafficList.end(); it++) {
-      AppTrafficEntry *entry = &(*it);
-      std::string _app_name = entry->getAppName();
-      if (app_name.compare(_app_name) == 0) {
-        return entry;
-      }
+  AppEntry *getItem(std::string appName) {
+    std::map<std::string, AppEntry>::iterator foundItem =
+        this->mAppMap.find(appName);
+    if (foundItem == this->mAppMap.end()) {
+      return NULL;
+    } else {
+      return &(foundItem->second);
     }
-    return NULL;
   }
 
-  void addItem(AppTrafficEntry &appTrafficEntry) {
-    this->mAppTrafficList.push_back(appTrafficEntry);
+  void addItem(AppEntry &appEntry) {
+    std::string appName = appEntry.appName;
+    this->mAppMap.insert(std::pair<std::string, AppEntry>(appName, appEntry));
   }
 
-  std::vector<AppTrafficEntry> &getList() { return this->mAppTrafficList; }
+  std::map<std::string, AppEntry> &getMap() { return this->mAppMap; }
 
 private:
-  std::vector<AppTrafficEntry> mAppTrafficList;
+  std::map<std::string, AppEntry> mAppMap;
 }; /* class TrafficHistoryTable */
 } /* namespace sc */
 

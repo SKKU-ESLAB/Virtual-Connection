@@ -59,9 +59,7 @@ public:
 private:
   SwitchBehavior decide_internal(const Stats &stats, bool is_increasable,
                                  bool is_decreasable);
-  BWTrafficEntry *get_most_proper_traffic(AppTrafficEntry *appEntry,
-                                          float present_request_bandwidth);
-  BWTrafficEntry *get_most_proper_traffic_time_only(AppTrafficEntry *appEntry);
+  TrafficEntry *get_most_proper_traffic(AppEntry *appEntry);
 
   SwitchBehavior decide_internal_fg_only_mode(const Stats &stats,
                                               bool is_increasable,
@@ -89,7 +87,7 @@ private:
   bool mIsRecentWfdOn;
 
   bool mIsFGBGMixedMode;
-  AppTrafficEntry *mBGAppEntry;
+  AppEntry *mBGAppEntry;
 
   struct timeval mRecentSwitchTS;
 

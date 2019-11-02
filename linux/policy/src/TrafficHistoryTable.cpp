@@ -30,25 +30,22 @@
 
 using namespace sc;
 
+// Internal reader class
 class TrafficHistoryTableReader {
 public:
   void read_header(void) {
-    this->mCSVReader->read_header(io::ignore_extra_column, "AppName", "TimeSec",
-                                  "Bandwidth", "IncFlag", "TrafficSequence");
+    this->mCSVReader->read_header(io::ignore_extra_column, "AppName",
+                                  "EventType", "TimeSec", "TrafficSequence");
   }
 
-  bool read_a_row(std::string &app_name, float &time_sec, float &bandwidth,
-                  bool &is_increase, std::vector<int> &traffic_sequence) {
-    std::string time_sec_str, bandwidth_str, inc_flag_str, traffic_sequence_str;
-    bool ret = this->mCSVReader->read_row(app_name, time_sec_str, bandwidth_str,
-                                          inc_flag_str, traffic_sequence_str);
+  bool read_a_row(std::string &app_name, int event_type, float &time_sec,
+                  std::vector<int> &traffic_sequence) {
+    std::string event_type_str, time_sec_str, traffic_sequence_str;
+    bool ret = this->mCSVReader->read_row(app_name, event_type_str,
+                                          time_sec_str, traffic_sequence_str);
     if (ret) {
-      // LOG_VERB("ROW: %s / %s / %s / %s / %s", app_name.c_str(),
-      //          time_sec_str.c_str(), bandwidth_str.c_str(),
-      //          inc_flag_str.c_str(), traffic_sequence_str.c_str());
+      event_type = std::stoi(event_type_str);
       time_sec = std::stof(time_sec_str);
-      bandwidth = std::stof(bandwidth_str);
-      is_increase = (std::stoi(inc_flag_str) > 0) ? true : false;
 
       std::istringstream sstream(traffic_sequence_str);
       std::string token;
@@ -63,14 +60,14 @@ public:
 
   TrafficHistoryTableReader(std::string filename) {
     this->mCSVReader =
-        new io::CSVReader<5, io::trim_chars<>,
+        new io::CSVReader<4, io::trim_chars<>,
                           io::double_quote_escape<',', '\"'>>(filename.c_str());
   }
 
 private:
-  io::CSVReader<5, io::trim_chars<>, io::double_quote_escape<',', '\"'>>
+  io::CSVReader<4, io::trim_chars<>, io::double_quote_escape<',', '\"'>>
       *mCSVReader;
-};
+}; /* class TrafficHistoryTableReader */
 
 // Read TrafficHistoryTable file and construct the data structure
 void TrafficHistoryTable::initialize(void) {
@@ -81,28 +78,34 @@ void TrafficHistoryTable::initialize(void) {
   int num_rows = 0;
   while (true) {
     std::string app_name;
-    float time_sec, bandwidth;
-    bool is_increase;
+    int event_type;
+    float time_sec;
     std::vector<int> traffic_sequence;
-    if (!reader.read_a_row(app_name, time_sec, bandwidth, is_increase,
-                           traffic_sequence)) {
+    if (!reader.read_a_row(app_name, event_type, time_sec, traffic_sequence)) {
       break;
     }
 
-    AppTrafficEntry *app_entry = this->getItem(app_name);
+    AppEntry *app_entry = this->getItem(app_name);
     if (app_entry == NULL) {
-      AppTrafficEntry new_app_entry(app_name);
+      AppEntry new_app_entry(app_name);
       this->addItem(new_app_entry);
       app_entry = this->getItem(app_name);
     }
 
-    BWTrafficEntry new_bw_traffic_entry(time_sec, bandwidth, is_increase,
-                                        traffic_sequence);
-    app_entry->addItem(new_bw_traffic_entry);
+    EventTypeEntry *event_type_entry = app_entry->getItem(event_type);
+    if (event_type_entry == NULL) {
+      EventTypeEntry new_event_type_entry(event_type);
+      this->addItem(new_event_type_entry);
+      event_type_entry = app_entry->getItem(event_type_entry);
+    }
+
+    TrafficEntry new_traffic_entry(time_sec, traffic_sequence);
+    event_type_entry->addItem(new_traffic_entry);
     num_rows++;
   }
 
   if (num_rows <= 0) {
-    LOG_WARN("No data on traffic history table file!: %s", TRAFFIC_HISTORY_TABLE_FILENAME);
+    LOG_WARN("No data on traffic history table file!: %s",
+             TRAFFIC_HISTORY_TABLE_FILENAME);
   }
 }
