@@ -75,15 +75,25 @@ void TrafficHistoryTable::initialize(void) {
   TrafficHistoryTableReader reader(filename);
   reader.read_header();
 
+  std::string present_app_name;
+  float present_app_start_time_sec = 0.0f;
+
   int num_rows = 0;
   while (true) {
     std::string app_name;
     int event_type;
-    float time_sec;
+    float absolute_time_sec;
     std::vector<int> traffic_sequence;
-    if (!reader.read_a_row(app_name, event_type, time_sec, traffic_sequence)) {
+    if (!reader.read_a_row(app_name, event_type, absolute_time_sec,
+                           traffic_sequence)) {
       break;
     }
+
+    if (app_name.compare(present_app_name) != 0) {
+      present_app_start_time_sec = absolute_time_sec;
+    }
+    present_app_name = app_name;
+    float relative_time_sec = absolute_time_sec - present_app_start_time_sec;
 
     AppEntry *app_entry = this->getItem(app_name);
     if (app_entry == NULL) {
@@ -95,11 +105,11 @@ void TrafficHistoryTable::initialize(void) {
     EventTypeEntry *event_type_entry = app_entry->getItem(event_type);
     if (event_type_entry == NULL) {
       EventTypeEntry new_event_type_entry(event_type);
-      this->addItem(new_event_type_entry);
-      event_type_entry = app_entry->getItem(event_type_entry);
+      app_entry->addItem(new_event_type_entry);
+      event_type_entry = app_entry->getItem(event_type);
     }
 
-    TrafficEntry new_traffic_entry(time_sec, traffic_sequence);
+    TrafficEntry new_traffic_entry(relative_time_sec, traffic_sequence);
     event_type_entry->addItem(new_traffic_entry);
     num_rows++;
   }

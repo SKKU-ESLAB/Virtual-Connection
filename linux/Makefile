@@ -67,12 +67,9 @@ $(BIN_DIR)/%.py : $(TOOLS_DIR)/%.py
 $(BIN_DIR)/%.sh : $(TOOLS_DIR)/%.sh
 	cp $< $@
 
-exp: history_based_runner history_based_runner_with_bg bt_only_runner wfd_only_runner app_manual_runner throughput_aware_runner
+exp: history_based_runner  bt_only_runner wfd_only_runner app_manual_runner throughput_aware_runner
 
 history_based_runner: exp/history_based_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
-	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
-
-history_based_runner_with_bg: exp/history_based_runner_with_bg.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)
 	$(CC) -o $(BIN_DIR)/$@ $^ $(FLAG) $(LIB)
 
 app_manual_runner: exp/app_manual_runner.cpp exp/TraceRunner.cpp $(CORE_OBJ) $(POLICY_OBJ) $(COMMON_OBJ) $(DEV_OBJ)

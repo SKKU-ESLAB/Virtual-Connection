@@ -35,7 +35,7 @@ namespace sc {
 
 class TrafficEntry {
 public:
-  TrafficEntry(float mTimeSec, std::vector<int> traffic_sequence) {
+  TrafficEntry(float time_sec, std::vector<int> traffic_sequence) {
     this->mTimeSec = time_sec;
     this->mTrafficSequence.assign(traffic_sequence.begin(),
                                   traffic_sequence.end());
@@ -63,7 +63,7 @@ public:
     for (std::vector<TrafficEntry>::iterator it = this->mTrafficList.begin();
          it != this->mTrafficList.end(); it++) {
       TrafficEntry *entry = &(*it);
-      float entry_time_diff = abs(entry_time_sec - entry->getTimeSec());
+      float entry_time_diff = abs(time_sec - entry->getTimeSec());
       if (closest_time_diff > entry_time_diff) {
         closest_entry = entry;
         closest_time_diff = entry_time_diff;
@@ -76,7 +76,7 @@ public:
     this->mTrafficList.push_back(trafficEntry);
   }
 
-  std::vector<TrafficEntry> &getMap() { return this->mTrafficList; }
+  std::vector<TrafficEntry> &getList() { return this->mTrafficList; }
 
 private:
   int mEventType;
@@ -89,7 +89,7 @@ public:
   std::string getAppName() { return this->mAppName; }
 
   EventTypeEntry *getItem(int eventType) {
-    std::map<std::string, EventTypeEntry>::iterator foundItem =
+    std::map<int, EventTypeEntry>::iterator foundItem =
         this->mEventTypeMap.find(eventType);
     if (foundItem == this->mEventTypeMap.end()) {
       return NULL;
@@ -99,7 +99,7 @@ public:
   }
 
   void addItem(EventTypeEntry &eventTypeEntry) {
-    int eventType = eventTypeEntry.eventType;
+    int eventType = eventTypeEntry.getEventType();
     this->mEventTypeMap.insert(
         std::pair<int, EventTypeEntry>(eventType, eventTypeEntry));
   }
@@ -127,7 +127,7 @@ public:
   }
 
   void addItem(AppEntry &appEntry) {
-    std::string appName = appEntry.appName;
+    std::string appName = appEntry.getAppName();
     this->mAppMap.insert(std::pair<std::string, AppEntry>(appName, appEntry));
   }
 

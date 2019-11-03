@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 
   printf("App-aware policy with FG-only mode\n");
 
-  NMPolicyHistoryBased *switch_policy = new NMPolicyHistoryBased(false);
+  NMPolicyHistoryBased *switch_policy = new NMPolicyHistoryBased();
   trace_runner->start(switch_policy);
 
   delete switch_policy;

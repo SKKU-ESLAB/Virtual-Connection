@@ -70,7 +70,6 @@ protected:
 
 private:
   void print_custom_event(std::string &event_string) {
-    // TODO: event_string = app_name + event_type
     // Update recent custom event timestamp
     gettimeofday(&this->mRecentCustomEventTS, NULL);
     if (!this->mIsFirstCustomEvent) {
