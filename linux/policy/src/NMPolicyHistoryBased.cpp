@@ -43,10 +43,11 @@ std::string NMPolicyHistoryBased::get_stats_string(void) {
     snprintf(recent_adapter_name, 50, "BT");
   }
   char stats_cstr[256];
-  snprintf(stats_cstr, 256, "\"%s\": %d vs. %d - (%d/%d) - %s",
-           this->mPresentAppName.c_str(), (int)this->mEnergyRetain,
-           (int)this->mEnergySwitch, this->mRequestSpeedIncCount,
-           this->mRequestSpeedDecCount, recent_adapter_name);
+  snprintf(stats_cstr, 256, "\"%s/%s\": %d vs. %d - (%d/%d) - %s",
+           this->mPresentBGAppName.c_str(), this->mPresentFGAppName.c_str(),
+           (int)this->mEnergyRetain, (int)this->mEnergySwitch,
+           this->mRequestSpeedIncCount, this->mRequestSpeedDecCount,
+           recent_adapter_name);
 
   std::string stats_string(stats_cstr);
   return stats_string;
@@ -57,14 +58,29 @@ void NMPolicyHistoryBased::on_custom_event(std::string &event_description) {
   std::istringstream sstream(event_description);
   std::string token;
   int i = 0;
+  bool is_background_app = false;
   while (std::getline(sstream, token, ' ')) {
     if (i == 0) {
-      if (this->mPresentAppName.compare(token) != 0) {
-        gettimeofday(&this->mPresentAppStartTS, NULL);
+      if (token.find("BG") != std::string::npos) {
+        is_background_app = true;
       }
-      this->mPresentAppName.assign(token);
+      if (is_background_app) {
+        if (this->mPresentBGAppName.compare(token) != 0) {
+          gettimeofday(&this->mPresentBGAppStartTS, NULL);
+        }
+        this->mPresentBGAppName.assign(token);
+      } else {
+        if (this->mPresentFGAppName.compare(token) != 0) {
+          gettimeofday(&this->mPresentFGAppStartTS, NULL);
+        }
+        this->mPresentFGAppName.assign(token);
+      }
     } else if (i == 1) {
-      this->mPresentEventType = std::stoi(token);
+      if (is_background_app) {
+        this->mPresentBGEventType = std::stoi(token);
+      } else {
+        this->mPresentFGEventType = std::stoi(token);
+      }
     }
     i++;
   }
@@ -138,7 +154,7 @@ void NMPolicyHistoryBased::reset_recent_switch_ts(void) {
 SwitchBehavior NMPolicyHistoryBased::decide_internal(const Stats &stats,
                                                      bool is_increasable,
                                                      bool is_decreasable) {
-  if (this->mPresentAppName.empty()) {
+  if (this->mPresentFGAppName.empty()) {
     return kNoBehavior;
   }
 
@@ -172,16 +188,17 @@ SwitchBehavior NMPolicyHistoryBased::decide_internal(const Stats &stats,
 
   // Step 2. get traffic prediction entry for the FG/BG apps
   AppEntry *fgAppEntry =
-      this->mTrafficPredictionTable.getItem(this->mPresentAppName);
+      this->mTrafficPredictionTable.getItem(this->mPresentFGAppName);
   if (fgAppEntry == NULL) {
     LOG_WARN("Cannot find traffic prediction: %s",
-             this->mPresentAppName.c_str());
+             this->mPresentFGAppName.c_str());
     return kNoBehavior;
   }
   AppEntry *bgAppEntry = this->mBGAppEntry;
 
   // Step 3-a. predict traffic history for the foreground app
-  TrafficEntry *fg_predicted_traffic = this->get_predicted_traffic(fgAppEntry);
+  TrafficEntry *fg_predicted_traffic =
+      this->get_predicted_traffic(fgAppEntry, false);
   if (fg_predicted_traffic == NULL) {
     LOG_WARN("No predicted traffic for FG app");
     return kNoBehavior;
@@ -191,7 +208,7 @@ SwitchBehavior NMPolicyHistoryBased::decide_internal(const Stats &stats,
   std::vector<int> &traffic_seq = fg_predicted_traffic->getTrafficSequence();
   if (bgAppEntry != NULL) {
     TrafficEntry *bg_predicted_traffic =
-        this->get_predicted_traffic(bgAppEntry);
+        this->get_predicted_traffic(bgAppEntry, true);
     if (bg_predicted_traffic == NULL) {
       LOG_WARN("No predicted traffic for BG app");
       return kNoBehavior;
@@ -248,18 +265,30 @@ SwitchBehavior NMPolicyHistoryBased::decide_internal(const Stats &stats,
   }
 }
 
-TrafficEntry *NMPolicyHistoryBased::get_predicted_traffic(AppEntry *appEntry) {
+TrafficEntry *
+NMPolicyHistoryBased::get_predicted_traffic(AppEntry *appEntry,
+                                            bool isBackgroundApp) {
   TrafficEntry *most_proper_traffic = NULL;
   struct timeval present_time;
+  struct timeval present_app_start_time;
+  int event_type;
+  if (isBackgroundApp) {
+    present_app_start_time = this->mPresentBGAppStartTS;
+    event_type = this->mPresentBGEventType;
+  } else {
+    present_app_start_time = this->mPresentFGAppStartTS;
+    event_type = this->mPresentFGEventType;
+  }
+
   gettimeofday(&present_time, NULL);
   long long presentTimeUS =
       (long long)present_time.tv_sec * 1000 * 1000 + present_time.tv_usec;
   long long appStartTimeUs =
-      (long long)this->mPresentAppStartTS.tv_sec * 1000 * 1000 +
-      this->mPresentAppStartTS.tv_usec;
+      (long long)present_app_start_time.tv_sec * 1000 * 1000 +
+      present_app_start_time.tv_usec;
 
   // Get event type entry
-  EventTypeEntry *eventTypeEntry = appEntry->getItem(this->mPresentEventType);
+  EventTypeEntry *eventTypeEntry = appEntry->getItem(event_type);
   if (eventTypeEntry == NULL) {
     return NULL;
   }

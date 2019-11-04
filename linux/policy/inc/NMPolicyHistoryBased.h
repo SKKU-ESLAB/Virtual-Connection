@@ -30,9 +30,14 @@ namespace sc {
 class NMPolicyHistoryBased : public NMPolicy {
 public:
   NMPolicyHistoryBased() {
-    this->mPresentAppName.assign("");
-    this->mPresentAppStartTS.tv_sec = 0;
-    this->mPresentAppStartTS.tv_usec = 0;
+    this->mPresentFGAppName.assign("");
+    this->mPresentBGAppName.assign("");
+    this->mPresentFGAppStartTS.tv_sec = 0;
+    this->mPresentFGAppStartTS.tv_usec = 0;
+    this->mPresentFGEventType = 0;
+    this->mPresentBGAppStartTS.tv_sec = 0;
+    this->mPresentBGAppStartTS.tv_usec = 0;
+    this->mPresentBGEventType = 0;
     this->mLastMediaBandwidth = 0.0f;
     this->mRequestSpeedIncCount = 0;
     this->mRequestSpeedDecCount = 0;
@@ -62,7 +67,7 @@ public:
 private:
   SwitchBehavior decide_internal(const Stats &stats, bool is_increasable,
                                  bool is_decreasable);
-  TrafficEntry *get_predicted_traffic(AppEntry *appEntry);
+  TrafficEntry *get_predicted_traffic(AppEntry *appEntry, bool isBackgroundApp);
 
   void update_recent_switch_ts(void);
   void reset_recent_switch_ts(void);
@@ -70,9 +75,12 @@ private:
   void check_background_app_entry(void);
 
 private:
-  std::string mPresentAppName;
-  struct timeval mPresentAppStartTS;
-  int mPresentEventType;
+  std::string mPresentFGAppName;
+  std::string mPresentBGAppName;
+  struct timeval mPresentFGAppStartTS;
+  int mPresentFGEventType;
+  struct timeval mPresentBGAppStartTS;
+  int mPresentBGEventType;
 
   float mLastMediaBandwidth;
   int mRequestSpeedIncCount;

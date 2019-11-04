@@ -36,18 +36,18 @@ int main(int argc, char **argv) {
   }
 
   std::string packet_trace_filename("");
-  std::string app_trace_filename("");
+  std::string event_trace_filename("");
 
   if (argc == 1) {
     packet_trace_filename.assign("final-packet-trace.csv");
-    app_trace_filename.assign("final-app-trace.csv");
+    event_trace_filename.assign("final-event-trace.csv");
   } else {
     packet_trace_filename.assign(argv[1]);
-    app_trace_filename.assign(argv[2]);
+    event_trace_filename.assign(argv[2]);
   }
 
   TraceRunner *trace_runner = TraceRunner::trace_runner(
-      packet_trace_filename, app_trace_filename, true);
+      packet_trace_filename, event_trace_filename, true);
 
   NMPolicyBtOnly *switch_policy = new NMPolicyBtOnly();
   trace_runner->start(switch_policy);
