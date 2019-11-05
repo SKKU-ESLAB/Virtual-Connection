@@ -19,6 +19,8 @@
 #ifndef __TRAFFIC_HISTORY_TABLE_H__
 #define __TRAFFIC_HISTORY_TABLE_H__
 
+#include "../../common/inc/DebugLog.h"
+
 #include <cmath>
 #include <limits>
 #include <map>
@@ -64,6 +66,7 @@ public:
          it != this->mTrafficList.end(); it++) {
       TrafficEntry *entry = &(*it);
       float entry_time_diff = abs(time_sec - entry->getTimeSec());
+      LOG_DEBUG("%7.3f? %7.3f vs. %7.3f", time_sec, closest_time_diff, entry_time_diff);
       if (closest_time_diff > entry_time_diff) {
         closest_entry = entry;
         closest_time_diff = entry_time_diff;

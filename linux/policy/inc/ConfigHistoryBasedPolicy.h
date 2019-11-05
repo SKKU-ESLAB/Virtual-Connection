@@ -24,6 +24,10 @@
 #define DEC_COUNT_THRESHOLD 10
 
 #define IDLE_THRESHOLD 5 * 1000 // 5KB/s
+#define SWITCH_THRESHOLD 75 * 1000 // 75KB/s
+
+#define HIGH_THRESHOLD 150 * 1000 // 150KB/s
+#define LOW_THRESHOLD 50 * 1000 // 50KB/s
 
 #define TRAFFIC_HISTORY_TABLE_FILENAME "traffic_history_table.txt"
 

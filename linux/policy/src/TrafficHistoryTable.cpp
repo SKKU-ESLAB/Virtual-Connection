@@ -38,7 +38,7 @@ public:
                                   "EventType", "TimeSec", "TrafficSequence");
   }
 
-  bool read_a_row(std::string &app_name, int event_type, float &time_sec,
+  bool read_a_row(std::string &app_name, int& event_type, float &time_sec,
                   std::vector<int> &traffic_sequence) {
     std::string event_type_str, time_sec_str, traffic_sequence_str;
     bool ret = this->mCSVReader->read_row(app_name, event_type_str,

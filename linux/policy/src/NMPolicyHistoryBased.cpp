@@ -31,7 +31,7 @@
 #include <limits>
 #include <sstream>
 
-#define PRINT_EVERY_ENERGY_COMPARISON 1
+#define PRINT_EVERY_ENERGY_COMPARISON 0
 
 using namespace sc;
 
@@ -43,8 +43,9 @@ std::string NMPolicyHistoryBased::get_stats_string(void) {
     snprintf(recent_adapter_name, 50, "BT");
   }
   char stats_cstr[256];
-  snprintf(stats_cstr, 256, "\"%s/%s\": %d vs. %d - (%d/%d) - %s",
-           this->mPresentBGAppName.c_str(), this->mPresentFGAppName.c_str(),
+  snprintf(stats_cstr, 256, "\"%s(%d)/%s(%d)\": %d vs. %d - (%d/%d) - %s",
+           this->mPresentBGAppName.c_str(), this->mPresentBGEventType,
+           this->mPresentFGAppName.c_str(), this->mPresentFGEventType,
            (int)this->mEnergyRetain, (int)this->mEnergySwitch,
            this->mRequestSpeedIncCount, this->mRequestSpeedDecCount,
            recent_adapter_name);
@@ -154,30 +155,34 @@ void NMPolicyHistoryBased::reset_recent_switch_ts(void) {
 SwitchBehavior NMPolicyHistoryBased::decide_internal(const Stats &stats,
                                                      bool is_increasable,
                                                      bool is_decreasable) {
-  if (this->mPresentFGAppName.empty()) {
-    return kNoBehavior;
-  }
 
   float present_media_bandwidth =
       stats.ema_queue_arrival_speed + (float)stats.now_queue_data_size; // B/s
 
+  // Step 1. Filtering
+
   // Step 1-a. Filtering increase when idle / decrease when busy
-  if (present_media_bandwidth > IDLE_THRESHOLD && is_decreasable) {
-    // Filtering decrease when busy
-    return kNoBehavior;
-  } else if (present_media_bandwidth < IDLE_THRESHOLD && is_increasable) {
-    // Filtering increase when idle
-    return kNoBehavior;
-  }
+  // if (present_media_bandwidth > IDLE_THRESHOLD && is_decreasable) {
+  //   // Filtering decrease when busy
+  //   return kNoBehavior;
+  // } else if (present_media_bandwidth < IDLE_THRESHOLD && is_increasable) {
+  //   // Filtering increase when idle
+  //   return kNoBehavior;
+  // }
 
   // Step 1-b. detect increasing/decreasing traffic in series
-  if (present_media_bandwidth < this->mLastMediaBandwidth ||
-      present_media_bandwidth < IDLE_THRESHOLD) {
+  if (present_media_bandwidth > HIGH_THRESHOLD) {
+    this->mRequestSpeedIncCount++;
+    this->mRequestSpeedDecCount = 0;
+  } else if (present_media_bandwidth < LOW_THRESHOLD) {
     this->mRequestSpeedDecCount++;
     this->mRequestSpeedIncCount = 0;
   } else if (present_media_bandwidth > this->mLastMediaBandwidth) {
     this->mRequestSpeedIncCount++;
     this->mRequestSpeedDecCount = 0;
+  } else if (present_media_bandwidth < this->mLastMediaBandwidth) {
+    this->mRequestSpeedDecCount++;
+    this->mRequestSpeedIncCount = 0;
   }
   this->mLastMediaBandwidth = present_media_bandwidth;
 
@@ -186,39 +191,57 @@ SwitchBehavior NMPolicyHistoryBased::decide_internal(const Stats &stats,
     return kNoBehavior;
   }
 
-  // Step 2. get traffic prediction entry for the FG/BG apps
-  AppEntry *fgAppEntry =
-      this->mTrafficPredictionTable.getItem(this->mPresentFGAppName);
-  if (fgAppEntry == NULL) {
-    LOG_WARN("Cannot find traffic prediction: %s",
-             this->mPresentFGAppName.c_str());
+  if ((is_increasable && (this->mRequestSpeedDecCount > DEC_COUNT_THRESHOLD)) ||
+      (is_decreasable && (this->mRequestSpeedIncCount > INC_COUNT_THRESHOLD))) {
     return kNoBehavior;
+  }
+
+  // Step 2. get traffic prediction entry for the FG/BG apps
+  AppEntry *fgAppEntry = NULL;
+  if (!this->mPresentFGAppName.empty()) {
+    fgAppEntry = this->mTrafficPredictionTable.getItem(this->mPresentFGAppName);
+    if (fgAppEntry == NULL) {
+      LOG_WARN("Cannot find traffic prediction: %s",
+               this->mPresentFGAppName.c_str());
+      return kNoBehavior;
+    }
   }
   AppEntry *bgAppEntry = this->mBGAppEntry;
-
-  // Step 3-a. predict traffic history for the foreground app
-  TrafficEntry *fg_predicted_traffic =
-      this->get_predicted_traffic(fgAppEntry, false);
-  if (fg_predicted_traffic == NULL) {
-    LOG_WARN("No predicted traffic for FG app");
+  if (fgAppEntry == NULL && bgAppEntry == NULL) {
+    LOG_WARN("No apps: no traffic prediction");
     return kNoBehavior;
   }
 
-  // Step 3-b. merge background app's traffic history if background app exists
-  std::vector<int> &traffic_seq = fg_predicted_traffic->getTrafficSequence();
+  // Step 3-a. predict traffic history for the foreground app
+  int predicted_traffic_length = 0;
+  TrafficEntry *fg_traffic = NULL;
+  if (fgAppEntry != NULL) {
+    fg_traffic = this->get_predicted_traffic(fgAppEntry, false);
+    if (fg_traffic == NULL) {
+      LOG_WARN("No predicted traffic for FG app");
+      return kNoBehavior;
+    }
+    predicted_traffic_length = fg_traffic->getTrafficSequence().size();
+  }
+
+  // Step 3-b. predict traffic history for the background app
+  TrafficEntry *bg_traffic = NULL;
   if (bgAppEntry != NULL) {
-    TrafficEntry *bg_predicted_traffic =
-        this->get_predicted_traffic(bgAppEntry, true);
-    if (bg_predicted_traffic == NULL) {
+    bg_traffic = this->get_predicted_traffic(bgAppEntry, true);
+    if (bg_traffic == NULL) {
       LOG_WARN("No predicted traffic for BG app");
       return kNoBehavior;
     }
+    predicted_traffic_length = bg_traffic->getTrafficSequence().size();
+  }
 
-    std::vector<int> &bg_traffic_seq =
-        bg_predicted_traffic->getTrafficSequence();
-    for (int i = 0; i < traffic_seq.size(); i++) {
-      traffic_seq[i] = traffic_seq[i] + bg_traffic_seq[i];
-    }
+  // Step 3-C. merge traffic histories
+  std::vector<int> traffic_seq;
+  for (int i = 0; i < predicted_traffic_length; i++) {
+    int traffic = 0;
+    traffic += (fg_traffic) ? fg_traffic->getTrafficSequence()[i] : 0;
+    traffic += (bg_traffic) ? bg_traffic->getTrafficSequence()[i] : 0;
+    traffic_seq.push_back(traffic);
   }
 
   // Step 4. predict energy and final decision
@@ -236,7 +259,8 @@ SwitchBehavior NMPolicyHistoryBased::decide_internal(const Stats &stats,
 #endif
     if (energy_bt < 0.0f || energy_bt_to_wfd < 0.0f) {
       return kNoBehavior;
-    } else if (energy_bt > energy_bt_to_wfd) {
+    } else if (energy_bt > energy_bt_to_wfd ||
+               energy_bt == std::numeric_limits<float>::max()) {
       return kIncreaseAdapter;
     } else {
       return kNoBehavior;
@@ -268,7 +292,6 @@ SwitchBehavior NMPolicyHistoryBased::decide_internal(const Stats &stats,
 TrafficEntry *
 NMPolicyHistoryBased::get_predicted_traffic(AppEntry *appEntry,
                                             bool isBackgroundApp) {
-  TrafficEntry *most_proper_traffic = NULL;
   struct timeval present_time;
   struct timeval present_app_start_time;
   int event_type;
@@ -290,14 +313,22 @@ NMPolicyHistoryBased::get_predicted_traffic(AppEntry *appEntry,
   // Get event type entry
   EventTypeEntry *eventTypeEntry = appEntry->getItem(event_type);
   if (eventTypeEntry == NULL) {
+    LOG_WARN("Cannot find event_type_entry: %d", event_type);
     return NULL;
   }
 
   // Get timestamp relative to app start event
   float present_time_sec = (float)(presentTimeUS - appStartTimeUs) / 1000000.0f;
-  float min_time_diff = std::numeric_limits<float>::max();
   TrafficEntry *trafficEntry = eventTypeEntry->findItem(present_time_sec);
-  return most_proper_traffic;
+  // LOG_ERR("Predicted traffic at : %4.1f (%d)", trafficEntry->getTimeSec(),
+  // isBackgroundApp);
+
+  // std::vector<int>& traffic = trafficEntry->getTrafficSequence();
+  // for(int i=0; i<traffic.size(); i++) {
+  //   printf("%d ", traffic[i]);
+  // }
+  // printf("\n");
+  return trafficEntry;
 }
 
 void NMPolicyHistoryBased::check_background_app_entry(void) {
