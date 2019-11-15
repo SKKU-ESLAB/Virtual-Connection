@@ -17,32 +17,33 @@
  * limitations under the License.
  */
 
-#include "../inc/NMPolicyWfdOnly.h"
-#include "../../common/inc/DebugLog.h"
+#include "../policy/inc/EnergyPredictor.h"
 
-#include <sys/time.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 using namespace sc;
 
-std::string NMPolicyWfdOnly::get_stats_string(void) {
-  char stats_cstr[256];
-  snprintf(stats_cstr, 256, "WFD-only");
-  std::string stats_string(stats_cstr);
-  return stats_string;
-}
-
-void NMPolicyWfdOnly::on_custom_event(std::string &event_description) {
-  if (!event_description.empty()) {
-    this->mIsAppStarted = true;
+int main(int argc, char **argv) {
+  /* Parse arguments */
+  if (argc != 4) {
+    printf("[Usage] %s <mode (1-BT / 2-WFD / 3-BT-WFD / 4-WFD-BT)>"
+           " <throughput (B/s)> <elapsed time (s)>\n",
+           argv[0]);
+    return -1;
   }
-  return;
-}
 
-SwitchBehavior NMPolicyWfdOnly::decide(const Stats &stats, bool is_increasable,
-                                       bool is_decreasable) {
-  if (this->mIsAppStarted && is_increasable) {
-    return kIncreaseAdapter;
-  } else {
-    return kNoBehavior;
+  int mode = atoi(argv[1]);
+  int throughput = atoi(argv[2]);
+  int elapsed_time = atoi(argv[3]);
+
+  std::vector<int> traffic_seq;
+  for (int i = 0; i < elapsed_time; i++) {
+    traffic_seq.push_back(throughput);
   }
+
+  float predicted_energy = EnergyPredictor::predictEnergy(0, traffic_seq, mode);
+  printf("%dB/s * %ds (mode: %d) => %3.02f\n", elapsed_time, throughput, mode,
+         predicted_energy);
+  return 0;
 }

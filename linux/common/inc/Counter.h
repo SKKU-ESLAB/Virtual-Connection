@@ -35,34 +35,7 @@ public:
 #define DEFAULT_EXPONENTIAL_MOVING_AVERAGE_MOMENTUM 0.1f
 #define PREV_VALUES_SIZE 10
 
-  Counter() {
-    int simple_moving_average_length = DEFAULT_SIMPLE_MOVING_AVERAGE_LENGTH;
-    float exponential_moving_average_momentum =
-        DEFAULT_EXPONENTIAL_MOVING_AVERAGE_MOMENTUM;
-
-    this->mValue = 0;
-
-    /* Speed */
-    for (int i = 0; i < PREV_VALUES_SIZE; i++) {
-      this->mPrevValues[i] = 0;
-      this->mPrevValueTSs[i] = 0;
-    }
-
-    /* Simple moving average */
-    assert(simple_moving_average_length > 0);
-    this->mSmaLength = simple_moving_average_length;
-    this->mSimpleHistoryValues = new int[this->mSmaLength];
-    for (int i = 0; i < this->mSmaLength; i++) {
-      this->mSimpleHistoryValues[i] = 0;
-    }
-    this->mSimpleHistoryCursor = 0;
-
-    /* Exponential moving average */
-    this->mEma = 0.0f;
-    this->mEmaMomentum = exponential_moving_average_momentum;
-    assert(exponential_moving_average_momentum >= 0 &&
-           exponential_moving_average_momentum <= 1);
-  }
+  Counter();
 
   ~Counter() { delete this->mSimpleHistoryValues; }
 
@@ -96,16 +69,11 @@ public:
     return this->get_value_locked();
   }
 
-  int get_speed() {
-    std::unique_lock<std::mutex> lock(this->mValueLock);
-    return this->get_speed_locked();
-  };
+private:
+  void set_value_locked(int new_value);
+  int get_value_locked() { return this->mValue; }
 
-  void update_speed() {
-    std::unique_lock<std::mutex> lock(this->mValueLock);
-    this->update_speed_locked();
-  }
-
+public:
   int get_sm_average(void) {
     std::unique_lock<std::mutex> lock(this->mValueLock);
     return this->get_sm_average_locked();
@@ -116,89 +84,31 @@ public:
     return this->get_em_average_locked();
   }
 
-  void start_measure_speed(void) {
-    if (!this->mIsSpeedThreadOn) {
-      this->mIsSpeedThreadOn = true;
-      this->mSpeedThread =
-          new std::thread(std::bind(&Counter::speed_thread_loop, this));
-      this->mSpeedThread->detach();
-    }
-  }
-
-  void stop_measure_speed(void) { this->mIsSpeedThreadOn = false; }
-
   float get_total_average(void) {
     return (float)((double)this->mTotal / this->mTotalCount);
   }
 
 private:
-  void set_value_locked(int new_value) {
-    /* Update new value */
-    this->mValue = new_value;
-
-    /* Update history for simple moving average */
-    this->mSimpleHistoryValues[this->mSimpleHistoryCursor] = new_value;
-    this->mSimpleHistoryCursor =
-        (this->mSimpleHistoryCursor + 1) % this->mSmaLength;
-
-    /* Update exponential moving average */
-    this->mEma = ((float)this->mEma * this->mEmaMomentum) +
-                 ((float)this->mValue * (1.0f - this->mEmaMomentum));
-
-    /* Total average */
-    this->mTotal += (long long)new_value;
-    this->mTotalCount++;
-  }
-
-  int get_value_locked() { return this->mValue; }
-
-  void speed_thread_loop() {
-    while (this->mIsSpeedThreadOn) {
-      this->update_speed();
-      usleep(250 * 1000);
-    }
-  }
-
-  int get_speed_locked() {
-    int startPointer = (this->mPrevValuePointer + 1) % PREV_VALUES_SIZE;
-    int endPointer = (this->mPrevValuePointer) % PREV_VALUES_SIZE;
-
-    int startValue = this->mPrevValues[startPointer];
-    int endValue = this->mPrevValues[endPointer];
-    uint64_t startTStv = this->mPrevValueTSs[startPointer];
-    uint64_t endTStv = this->mPrevValueTSs[endPointer];
-
-    int speed;
-    if (endTStv == 0 || startTStv == 0) {
-      speed = 0;
-    } else {
-      speed = (int)(((float)(endValue - startValue)) /
-                    ((float)(endTStv - startTStv) / 1000000));
-    }
-
-    return speed;
-  }
-
-  void update_speed_locked() {
-    struct timeval nowTStv;
-    gettimeofday(&nowTStv, NULL);
-
-    this->mPrevValuePointer = (this->mPrevValuePointer + 1) % PREV_VALUES_SIZE;
-    this->mPrevValues[this->mPrevValuePointer] = this->get_value_locked();
-    this->mPrevValueTSs[this->mPrevValuePointer] =
-        (uint64_t)nowTStv.tv_sec * 1000 * 1000 + nowTStv.tv_usec;
-  }
-
-  int get_sm_average_locked(void) {
-    int simple_mavg = 0;
-    for (int i = 0; i < this->mSmaLength; i++) {
-      simple_mavg += this->mSimpleHistoryValues[i];
-    }
-    simple_mavg /= this->mSmaLength;
-    return simple_mavg;
-  }
-
+  int get_sm_average_locked(void);
   float get_em_average_locked(void) { return this->mEma; }
+
+public:
+  int get_speed() {
+    // std::unique_lock<std::mutex> lock(this->mValueLock);
+    return this->get_speed_locked();
+  };
+
+  void update_speed() {
+    // std::unique_lock<std::mutex> lock(this->mValueLock);
+    this->update_speed_locked();
+  }
+  void start_measure_speed(void);
+  void stop_measure_speed(void) { this->mIsSpeedThreadOn = false; }
+
+private:
+  void speed_thread_loop();
+  int get_speed_locked();
+  void update_speed_locked();
 
 private:
   /* Value */

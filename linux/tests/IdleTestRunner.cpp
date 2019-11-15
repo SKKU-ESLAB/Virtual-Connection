@@ -98,7 +98,7 @@ void IdleTestRunner::on_start_sc(bool is_success) {
   if (self->mSendWhen == SEND_ON_WFD || self->mSendWhen == SEND_ON_BT_TO_WFD ||
       self->mSendWhen == SEND_ON_WFD_TO_BT) {
     NMPolicy *policy = sc::get_nm_policy();
-    policy->on_custom_event("wfd");
+    policy->send_custom_event("wfd");
   }
   if (self->mSendWhen == SEND_ON_WFD || self->mSendWhen == SEND_ON_WFD_TO_BT) {
     // Wait for 15 sec
@@ -110,7 +110,7 @@ void IdleTestRunner::on_start_sc(bool is_success) {
   // WFD -> BT
   if (self->mSendWhen == SEND_ON_WFD_TO_BT) {
     NMPolicy *policy = sc::get_nm_policy();
-    policy->on_custom_event("bt");
+    policy->send_custom_event("bt");
   }
 
   printf("\e[49;41m ** Start Workload\e[0m\n");

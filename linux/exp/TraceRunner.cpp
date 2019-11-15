@@ -23,6 +23,7 @@
 #include "../core/inc/API.h"
 #include "../core/inc/EventLogging.h"
 #include "../core/inc/NMPolicy.h"
+#include "../core/inc/Stats.h"
 #include "../device/inc/NetworkInitializer.h"
 
 using namespace sc;
@@ -36,8 +37,10 @@ using namespace sc;
 
 TraceRunner *TraceRunner::sTraceRunner = NULL;
 TraceRunner *TraceRunner::trace_runner(std::string packet_trace_filename,
-                                       std::string event_trace_filename) {
-  return new TraceRunner(packet_trace_filename, event_trace_filename);
+                                       std::string event_trace_filename,
+                                       bool is_wait_packets_of_prev_event) {
+  return new TraceRunner(packet_trace_filename, event_trace_filename,
+                         is_wait_packets_of_prev_event);
 }
 
 // Initialize network interfaces
@@ -45,6 +48,7 @@ void TraceRunner::start(NMPolicy *switch_policy) {
   assert(!this->mPacketTraceFilename.empty());
 
   printf("** TraceRunner Start\n");
+  printf(" ** Policy: %s\n", switch_policy->get_name().c_str());
   printf(" ** Packet Trace: %s\n", this->mPacketTraceFilename.c_str());
   printf(" ** Event Trace: %s\n", this->mEventTraceFilename.c_str());
 
@@ -87,9 +91,9 @@ void TraceRunner::on_start_sc(bool is_success) {
   EventLogging::print_event(buf);
 
   // Launch app receiving thread
-  self->mThread =
+  self->mReceivingThread =
       new std::thread(std::bind(&TraceRunner::receiving_thread, self));
-  self->mThread->detach();
+  self->mReceivingThread->detach();
 
   // 1. Send test data to warm-up the initial connection
   printf(" ** Send Test Data\n");
@@ -102,7 +106,10 @@ void TraceRunner::on_start_sc(bool is_success) {
 
   /// Parse trace file and send data
   printf("\e[49;41m ** Start Workload\e[0m\n");
-  self->send_workload(self->mPacketTraceFilename, self->mEventTraceFilename);
+  self->send_workload(self->mPacketTraceFilename, self->mEventTraceFilename,
+                      self->mIsWaitPacketsOfPrevEvent);
+  NMPolicy *policy = sc::get_nm_policy();
+  policy->send_custom_event("");
   printf("\e[49;41m ** Finish Workload...\e[0m\n");
 
   char eventstr[200];
@@ -110,10 +117,12 @@ void TraceRunner::on_start_sc(bool is_success) {
   snprintf(eventstr, 256, "Total average latency(send RTT): %.3fus\n",
            Core::singleton()->get_average_send_rtt());
   printf(eventstr);
+  EventLogging::print_event(eventstr);
   ::sleep(120);
   snprintf(eventstr2, 256, "Total average latency(send RTT): %.3fus\n",
            Core::singleton()->get_average_send_rtt());
   printf(eventstr2);
+  EventLogging::print_event(eventstr2);
   ::sleep(400);
   sc::stop_logging();
   sc::stop_monitoring();
@@ -131,7 +140,8 @@ void TraceRunner::send_test_data() {
 }
 
 void TraceRunner::send_workload(std::string &packet_trace_filename,
-                                std::string &event_trace_filename) {
+                                std::string &event_trace_filename,
+                                bool is_wait_packets_of_prev_event) {
   // Initialize parser
   PacketTraceReader *packet_trace_reader;
   packet_trace_reader = new PacketTraceReader(packet_trace_filename);
@@ -243,9 +253,31 @@ void TraceRunner::send_workload(std::string &packet_trace_filename,
       sc::send(data_buffer, next_packet_payload_length);
 
       free(data_buffer);
+
+      if (!this->mIsFirstPacketSent) {
+        this->mIsFirstPacketSent = true;
+        this->start_im_alive_thread();
+      }
     } else if (next_action == ACTION_CUSTOM_EVENT) {
+      // Wait until every packets of the previous event are sent
+      if (is_wait_packets_of_prev_event) {
+        bool is_first_checked = false;
+        bool is_queue_dirty = true;
+        while (is_queue_dirty) {
+          if (!is_first_checked) {
+            is_first_checked = true;
+          } else {
+            usleep(100 * 1000);
+          }
+          Stats stats;
+          stats.acquire_values();
+          is_queue_dirty = (stats.now_queue_data_size != 0);
+        }
+      }
+
+      // Update custom event
       NMPolicy *policy = sc::get_nm_policy();
-      policy->on_custom_event(next_event_description);
+      policy->send_custom_event(next_event_description);
     }
     num_iters++;
   }
@@ -282,6 +314,32 @@ void TraceRunner::receiving_thread(void) {
   }
 
   LOG_THREAD_FINISH("App Receiving");
+}
+
+void TraceRunner::start_im_alive_thread(void) {
+  this->mImAliveThread =
+      new std::thread(std::bind(&TraceRunner::im_alive_thread, this));
+  this->mImAliveThread->detach();
+}
+
+#define IM_ALIVE_THREAD_SLEEP_SEC 2
+#define ALIVE_PACKET_LENGTH 10
+void TraceRunner::im_alive_thread(void) {
+  char *data_buffer = (char *)calloc(ALIVE_PACKET_LENGTH, sizeof(char));
+  if (data_buffer == NULL) {
+    fprintf(stderr, "[Error] Data buffer allocation failed: size=%d\n",
+            ALIVE_PACKET_LENGTH);
+    return;
+  }
+
+  // Generate string to data buffer
+  TraceRunner::generate_simple_string(data_buffer, ALIVE_PACKET_LENGTH);
+  LOG_IMP("I'm Alive Thread start");
+  while (true) {
+    sc::send(data_buffer, ALIVE_PACKET_LENGTH);
+    sleep(IM_ALIVE_THREAD_SLEEP_SEC);
+  }
+  LOG_IMP("I'm Alive Thread end");
 }
 
 void TraceRunner::onUpdateServerAdapterState(sc::ServerAdapter *adapter,

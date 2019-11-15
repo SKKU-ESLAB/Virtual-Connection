@@ -17,10 +17,12 @@
  * limitations under the License.
  */
 
-#include "TestRunner.h"
+#include "TraceRunner.h"
 
 #include "../common/inc/ChildProcess.h"
 #include "../configs/PathConfig.h"
+
+#include "../policy/inc/NMPolicyHistoryBased.h"
 using namespace sc;
 
 #include <string>
@@ -28,35 +30,30 @@ using namespace sc;
 
 int main(int argc, char **argv) {
   /* Parse arguments */
-  if (argc != 2 && argc != 3) {
-    printf("[Usage] %s <send when?> <user-side throughput (B/s)>\n", argv[0]);
-    printf("  - on BT: 0\n");
-    printf("  - on WFD: 1\n");
-    printf("  - BT -> WFD: 2\n");
-    printf("  - WFD -> BT: 3\n");
+  if (argc != 3 && argc != 1) {
+    printf("[Usage] %s <packet trace file> <app trace file>\n", argv[0]);
     return -1;
   }
 
-  int send_when = atoi(argv[1]);
-  int throughput;
-  if (argc == 2) {
-    throughput = -1;
+  std::string packet_trace_filename("");
+  std::string event_trace_filename("");
+
+  if (argc == 1) {
+    packet_trace_filename.assign("final-packet-trace.csv");
+    event_trace_filename.assign("final-event-trace.csv");
   } else {
-    throughput = atoi(argv[2]);
+    packet_trace_filename.assign(argv[1]);
+    event_trace_filename.assign(argv[2]);
   }
 
-  TestRunner *test_runner;
-  if (send_when < 0 || send_when > 3) {
-    printf("Invalid send-when!: %d\n", send_when);
-    return -1;
-  }
+  TraceRunner *trace_runner = TraceRunner::trace_runner(
+      packet_trace_filename, event_trace_filename, true);
 
-  test_runner = TestRunner::test_runner(send_when, throughput);
+  printf("App-aware policy with FG-only mode\n");
 
-  if (test_runner == NULL) {
-    return -2;
-  }
+  NMPolicyHistoryBased *switch_policy = new NMPolicyHistoryBased();
+  trace_runner->start(switch_policy);
 
-  test_runner->start();
+  delete switch_policy;
   return 0;
 }

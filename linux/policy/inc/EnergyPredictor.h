@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-#define PREDICTION_WINDOW_SEC 15
+#define PREDICTION_WINDOW_SEC 30
 
 /* Switch scenario case */
 #define SCENARIO_BT 1
@@ -43,15 +43,15 @@
 #define LATENCY_WFD_TO_BT 6.8679f
 
 /* Measured maximum bandwidth (B/s) */
-#define MAX_BANDWIDTH_BT 200000.0f
+#define MAX_BANDWIDTH_BT 75000.0f
 #define MAX_BANDWIDTH_WFD 3500000.0f
-#define MAX_BANDWIDTH_BT_TO_WFD 200000.0f
+#define MAX_BANDWIDTH_BT_TO_WFD 75000.0f
 #define MAX_BANDWIDTH_WFD_TO_BT 3500000.0f
 
 /* Power regression model */
 #define RM_BT_B0 20.56f
 #define RM_BT_B1 1.756f
-#define RM_BT_B2 -0.001641
+#define RM_BT_B2 -0.001641f
 
 #define RM_WFD_B0 143.8f
 #define RM_WFD_B1 0.1964f
@@ -83,6 +83,7 @@ private:
   static float getPower(int bandwidth, int adapter_id);
   static int getInitialAdapter(int scenario_id);
   static float getSwitchLatency(int scenario_id);
+  static float getSwitchBackLatency(int scenario_id);
 }; /* class EnergyPredictor */
 } /* namespace sc */
 

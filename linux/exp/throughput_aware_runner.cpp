@@ -22,7 +22,7 @@
 #include "../common/inc/ChildProcess.h"
 #include "../configs/PathConfig.h"
 
-#include "../policy/inc/NMPolicyAppAware.h"
+#include "../policy/inc/NMPolicyThroughputAware.h"
 using namespace sc;
 
 #include <string>
@@ -36,20 +36,20 @@ int main(int argc, char **argv) {
   }
 
   std::string packet_trace_filename("");
-  std::string app_trace_filename("");
-  
-  if(argc == 1) {
+  std::string event_trace_filename("");
+
+  if (argc == 1) {
     packet_trace_filename.assign("final-packet-trace.csv");
-    app_trace_filename.assign("final-app-trace.csv");
+    event_trace_filename.assign("final-event-trace.csv");
   } else {
     packet_trace_filename.assign(argv[1]);
-    app_trace_filename.assign(argv[2]);
+    event_trace_filename.assign(argv[2]);
   }
 
-  TraceRunner *trace_runner =
-      TraceRunner::trace_runner(packet_trace_filename, app_trace_filename);
-  
-  NMPolicyAppAware *switch_policy = new NMPolicyAppAware();
+  TraceRunner *trace_runner = TraceRunner::trace_runner(
+      packet_trace_filename, event_trace_filename, true);
+
+  NMPolicyThroughputAware *switch_policy = new NMPolicyThroughputAware();
   trace_runner->start(switch_policy);
 
   delete switch_policy;

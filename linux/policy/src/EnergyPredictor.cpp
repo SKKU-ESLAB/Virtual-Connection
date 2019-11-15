@@ -75,6 +75,7 @@ bool EnergyPredictor::predictBandwidthSeq(int segment_queue_length,
     return false;
   }
   int remainder_data_size = segment_queue_length;
+  // Switch latency
   float remain_switch_latency = getSwitchLatency(scenario_id);
   bool is_switching = (remain_switch_latency > 0.0f) ? true : false;
   bool is_delayed_switch = false; // WFD b.w. should be applied delayingly
@@ -100,6 +101,8 @@ bool EnergyPredictor::predictBandwidthSeq(int segment_queue_length,
 
     // Predict bandwidth of a time item
     int data_prepared = remainder_data_size + traffic;
+    // printf("adapter_id=%d / max_bx=%f / data_prepared=%f\n", present_adapter_id,
+    //        getMaxBW(present_adapter_id), data_prepared);
     int bandwidth = (data_prepared < getMaxBW(present_adapter_id))
                         ? data_prepared
                         : getMaxBW(present_adapter_id);
@@ -128,13 +131,21 @@ float EnergyPredictor::_predictEnergy(std::vector<int> &bandwidth_seq,
     return -1.0f;
   }
 
-  if (bandwidth_seq.size() > PREDICTION_WINDOW_SEC) {
+  if (bandwidth_seq.size() > PREDICTION_WINDOW_SEC * 2) {
     return std::numeric_limits<float>::max();
   }
 
   float total_energy = 0.0f;
+  // Switch latency
   float remain_switch_latency = getSwitchLatency(scenario_id);
-  bool is_switching = (remain_switch_latency > 0.0f) ? true : false;
+  bool is_switching = (remain_switch_latency > 0.0f);
+  // Switch back latency (WFD->BT)
+  float remain_switch_back_latency = getSwitchBackLatency(scenario_id);
+  bool is_switch_back = (remain_switch_back_latency > 0.0f);
+  float remain_switch_back_start =
+      (is_switch_back)
+          ? ((float)bandwidth_seq.size() - remain_switch_back_latency)
+          : -1.0f;
   for (int bandwidth : bandwidth_seq) {
     // Predict unit energy
     float power = getPower(bandwidth, present_adapter_id);
@@ -159,18 +170,30 @@ float EnergyPredictor::_predictEnergy(std::vector<int> &bandwidth_seq,
         is_switching = false;
       }
     }
+    // Predict switch back
+    if (is_switch_back) {
+      remain_switch_back_start = remain_switch_back_start - 1.0f;
+      if (remain_switch_back_start < 0.0f) {
+        if (present_adapter_id == ADAPTER_WFD ||
+            present_adapter_id == ADAPTER_BT_TO_WFD) {
+          present_adapter_id = ADAPTER_WFD_TO_BT;
+          is_switch_back = false;
+        }
+      }
+    }
 
     // Update energy
-    if (is_switch_unit) {
-      // If switch occurs, use different power for the unit energy
-      float time_before_switch = remain_switch_latency + 1.0f;
-      float time_after_switch = 1.0f - time_before_switch;
-      float power_after_switch = getPower(bandwidth, present_adapter_id);
-      total_energy = total_energy + (power * time_before_switch) +
-                     (power_after_switch * time_after_switch);
-    } else {
-      total_energy = total_energy + power;
-    }
+    // if (is_switch_unit) {
+    //   // If switch occurs, use different power for the unit energy
+    //   float time_before_switch = remain_switch_latency + 1.0f;
+    //   float time_after_switch = 1.0f - time_before_switch;
+    //   float power_after_switch = getPower(bandwidth, present_adapter_id);
+    //   total_energy = total_energy + (power * time_before_switch) +
+    //                  (power_after_switch * time_after_switch);
+    //   is_switch_unit = false;
+    // } else {
+    total_energy = total_energy + power;
+    // }
   }
   if (total_energy < 0.0f) {
     total_energy = 0.0f;
@@ -253,6 +276,14 @@ float EnergyPredictor::getSwitchLatency(int scenario_id) {
   if (scenario_id == SCENARIO_BT_TO_WFD) {
     return LATENCY_BT_TO_WFD;
   } else if (scenario_id == SCENARIO_WFD_TO_BT) {
+    return LATENCY_WFD_TO_BT;
+  } else {
+    return -1.0f;
+  }
+}
+
+float EnergyPredictor::getSwitchBackLatency(int scenario_id) {
+  if (scenario_id == SCENARIO_BT_TO_WFD) {
     return LATENCY_WFD_TO_BT;
   } else {
     return -1.0f;

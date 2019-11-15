@@ -27,22 +27,17 @@
 namespace sc {
 class NMPolicyBtOnly : public NMPolicy {
 public:
-  NMPolicyBtOnly(void) {
-    this->mFirstAppLaunched = false;
-    this->mRecentAppLaunchTSSec = 0;
-    this->mRecentAppLaunchTSUsec = 0;
-  }
+  NMPolicyBtOnly(void) {}
   virtual std::string get_stats_string(void);
+  virtual std::string get_name(void) {
+    std::string str("BT-only");
+    return str;
+  }
   virtual void on_custom_event(std::string &event_description);
   virtual SwitchBehavior decide(const Stats &stats, bool is_increasable,
                                 bool is_decreasable);
 
 private:
-  bool mFirstAppLaunched;
-  struct timeval mFirstAppLaunchTS;
-  struct timeval mRecentAppLaunchTS;
-  int mRecentAppLaunchTSSec;
-  int mRecentAppLaunchTSUsec;
 }; /* class NMPolicyBtOnly */
 } /* namespace sc */
 

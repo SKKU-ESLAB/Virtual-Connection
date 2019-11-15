@@ -48,7 +48,8 @@ public:
     std::string ts_us_str, payload_length_str;
     bool ret = this->mCSVReader->read_row(ts_us_str, payload_length_str);
     if (ret) {
-      // LOG_VERB("ROW: %s / %s", ts_us_str.c_str(), payload_length_str.c_str());
+      // LOG_VERB("ROW: %s / %s", ts_us_str.c_str(),
+      // payload_length_str.c_str());
       ts_us = std::stoi(ts_us_str);
       payload_length = std::stoi(payload_length_str);
     }
@@ -77,7 +78,7 @@ public:
     std::string ts_us_str;
     bool ret = this->mCSVReader->read_row(ts_us_str, event_description);
     if (ret) {
-      LOG_VERB("ROW: %s / %s", ts_us_str.c_str(), event_description.c_str());
+      // LOG_VERB("ROW: %s / %s", ts_us_str.c_str(), event_description.c_str());
       ts_us = std::stoi(ts_us_str);
     }
 
@@ -107,12 +108,18 @@ private:
   void send_test_data(void);
 
   void send_workload(std::string &packet_trace_filename,
-                     std::string &event_trace_filename);
+                     std::string &event_trace_filename,
+                     bool is_wait_packets_of_prev_event);
   bool check_event(EventTraceReader *event_trace_reader, int next_packet_ts_us,
                    bool &next_event_ts_ready, int &next_event_ts_us);
   int sleep_workload(int next_ts_us);
 
   void receiving_thread(void);
+
+private:
+  void start_im_alive_thread(void);
+  void im_alive_thread(void);
+  bool mIsFirstPacketSent = false;
 
 private:
   /* implement sc::ServerAdapterStateListener */
@@ -125,24 +132,29 @@ private:
 
 public:
   static TraceRunner *trace_runner(std::string packet_trace_filename,
-                                   std::string event_trace_filename);
+                                   std::string event_trace_filename,
+                                   bool is_wait_packets_of_prev_event);
 
 private:
   TraceRunner(std::string packet_trace_filename,
-              std::string event_trace_filename) {
+              std::string event_trace_filename,
+              bool is_wait_packets_of_prev_event) {
     this->mPacketTraceFilename.assign(packet_trace_filename);
     this->mEventTraceFilename.assign(event_trace_filename);
+    this->mIsWaitPacketsOfPrevEvent = is_wait_packets_of_prev_event;
   }
 
 private:
   /* Attributes */
   std::string mPacketTraceFilename;
   std::string mEventTraceFilename;
+  bool mIsWaitPacketsOfPrevEvent;
 
   int mRecentTSUs = 0;
 
   /* Components */
-  std::thread *mThread;
+  std::thread *mReceivingThread;
+  std::thread *mImAliveThread;
   sc::BtServerAdapter *mBtAdapter;
   sc::WfdServerAdapter *mWfdAdapter;
 }; /* class TraceRunner */

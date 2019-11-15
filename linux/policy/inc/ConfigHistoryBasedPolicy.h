@@ -17,14 +17,18 @@
  * limitations under the License.
  */
 
-#ifndef __CONFIG_APP_AWARE_POLICY_H__
-#define __CONFIG_APP_AWARE_POLICY_H__
+#ifndef __CONFIG_history_based_POLICY_H__
+#define __CONFIG_history_based_POLICY_H__
 
 #define INC_COUNT_THRESHOLD 10
 #define DEC_COUNT_THRESHOLD 10
 
-#define IDLE_THRESHOLD 10 * 1000 // 10KB/s
+#define IDLE_THRESHOLD 5 * 1000 // 5KB/s
+#define SWITCH_THRESHOLD 75 * 1000 // 75KB/s
 
-#define APP_AWARE_TPT_FILENAME "app_aware_tpt.txt"
+#define HIGH_THRESHOLD 150 * 1000 // 150KB/s
+#define LOW_THRESHOLD 50 * 1000 // 50KB/s
 
-#endif /* defined(__CONFIG_APP_AWARE_POLICY_H__) */
+#define TRAFFIC_HISTORY_TABLE_FILENAME "traffic_history_table.txt"
+
+#endif /* defined(__CONFIG_history_based_POLICY_H__) */

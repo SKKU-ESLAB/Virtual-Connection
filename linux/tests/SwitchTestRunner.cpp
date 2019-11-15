@@ -104,7 +104,7 @@ void SwitchTestRunner::on_start_sc(bool is_success) {
   for(int i=0; i<self->mIterations; i++) {
     // BT -> WFD
     NMPolicy *policy = sc::get_nm_policy();
-    policy->on_custom_event("wfd");
+    policy->send_custom_event("wfd");
     
     
     // Wait for 30 sec
@@ -115,7 +115,7 @@ void SwitchTestRunner::on_start_sc(bool is_success) {
     
     // WFD -> BT
     policy = sc::get_nm_policy();
-    policy->on_custom_event("bt");
+    policy->send_custom_event("bt");
 
     // Wait for 30 sec
     for (int i = 0; i < 30; i++) {

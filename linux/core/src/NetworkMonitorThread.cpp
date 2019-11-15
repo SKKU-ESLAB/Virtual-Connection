@@ -21,6 +21,7 @@
 
 #include "../inc/Core.h"
 #include "../inc/NetworkSwitcher.h"
+#include "../inc/SegmentManager.h"
 #include "../inc/Stats.h"
 
 #include "../../configs/ExpConfig.h"
@@ -46,6 +47,10 @@ void NetworkMonitorThread::stop(void) { this->mMonitorThreadOn = false; }
 void NetworkMonitorThread::monitor_thread(void) {
   int count = 0;
   while (this->mMonitorThreadOn) {
+    // Update segmenet manager's stats
+    SegmentManager *sm = SegmentManager::singleton();
+    sm->update_queue_arrival_speed();
+
     // Get statistics
     Stats stats;
     stats.acquire_values();
@@ -73,19 +78,15 @@ void NetworkMonitorThread::print_stats(Stats &stats) {
   }
 
   this->mPrintCount++;
-  if(this->mPrintCount == 10) {
-    this->mPrintCount = 0;
-  } else {
+  if (this->mPrintCount % 10 != 0) {
     return;
   }
 
   char strline[512];
   snprintf(strline, 256,
-           "%8.3fms %4dB / %8.3fKB/s => %s[%4dKB]\e[0m => %s%6.1fKB/s\e[0m / "
+           "%d / %6.1fKB/s => %s[%4dKB]\e[0m => %s%6.1fKB/s\e[0m / "
            "RTT=%4dms",
-           ((float)stats.ema_arrival_time_us / 1000),
-           (int)stats.ema_send_request_size,
-           (stats.ema_queue_arrival_speed / 1000),
+           this->mPrintCount / 10, (stats.ema_queue_arrival_speed / 1000),
            (stats.now_queue_data_size == 0) ? "\e[44;97m" : "",
            (int)(stats.now_queue_data_size / 1000),
            (stats.now_total_bandwidth / 1000 > 3500) ? "\e[44;97m" : "",
@@ -112,7 +113,7 @@ void NetworkMonitorThread::check_and_decide_switching(Stats &stats) {
   SwitchBehavior behavior = SwitchBehavior::kNoBehavior;
   bool is_increasable = this->is_increaseable();
   bool is_decreasable = this->is_decreaseable();
-  behavior = policy->decide(stats, is_increasable, is_decreasable);
+  behavior = policy->decide_switch(stats, is_increasable, is_decreasable);
 
   Core *core = Core::singleton();
   int prev_index = core->get_active_adapter_index();
@@ -128,17 +129,17 @@ void NetworkMonitorThread::check_and_decide_switching(Stats &stats) {
     break;
   }
   case SwitchBehavior::kPrepareIncreaseAdapter:
-  // After using USB Bluetooth, thresholding is no more required.
-  // if(this->is_increasable()) {
-  //   core->prepare_switch(prev_index, next_index);
-  // }
-  // break;
+    // After using USB Bluetooth, thresholding is no more required.
+    // if(this->is_increasable()) {
+    //   core->prepare_switch(prev_index, next_index);
+    // }
+    break;
   case SwitchBehavior::kPrepareDecreaseAdapter: {
     // After using USB Bluetooth, thresholding is no more required.
     // if(this->is_decreasable()) {
     //   core->prepare_switch(prev_index, next_index);
     // }
-    // break;
+    break;
   }
   case SwitchBehavior::kCancelPrepareSwitchAdapter: {
     core->cancel_preparing_switch(prev_index, next_index);

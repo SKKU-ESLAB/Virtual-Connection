@@ -61,9 +61,9 @@ void NetworkInitializer::initialize(void) {
   system(cmdLine);
 
   // Step 3. Wi-fi Direct OFF
-  LOG_VERB("Init (3/4). Wi-fi Direct OFF");
+  LOG_VERB("Init (3/3). Wi-fi Direct OFF");
 
-  snprintf(cmdLine, 500, "killall udhcpd");
+  snprintf(cmdLine, 500, "killall udhcpd -q", KILLALL_PATH);
   system(cmdLine);
 
   // snprintf(cmdLine, 500, "%s %s down", IFCONFIG_PATH,
@@ -77,7 +77,7 @@ void NetworkInitializer::initialize(void) {
 #endif
 
   // Step 4. Wi-fi ON
-  LOG_VERB("Init (4/4). Wi-fi Direct ON");
+  LOG_VERB("Init (4/3). Wi-fi Direct ON");
 
 #if CONFIG_REALTEK_MODE == 1
 #else
@@ -86,12 +86,12 @@ void NetworkInitializer::initialize(void) {
   // system(cmdLine);
 #endif
 
-  // snprintf(cmdLine, 500, "%s %s up", IFCONFIG_PATH, DEFAULT_WFD_INTERFACE_NAME);
-  // system(cmdLine);
+  // snprintf(cmdLine, 500, "%s %s up", IFCONFIG_PATH,
+  // DEFAULT_WFD_INTERFACE_NAME); system(cmdLine);
 
 #if CONFIG_REALTEK_MODE == 1
   // Restart wpa_supplicant
-  snprintf(cmdLine, 500, "%s wpa_supplicant", KILLALL_PATH);
+  snprintf(cmdLine, 500, "%s wpa_supplicant -q", KILLALL_PATH);
   system(cmdLine);
 
   sleep(3);
@@ -117,7 +117,7 @@ void NetworkInitializer::initialize(void) {
   \n\tpsk=\"12345670\" \
   \n}");
   fclose(p2p_conf_file);
-  
+
   snprintf(cmdLine, 500, "%s -Dnl80211 -iwlan1 -cp2p.conf -Bd",
            WPA_SUPPLICANT_PATH);
   system(cmdLine);

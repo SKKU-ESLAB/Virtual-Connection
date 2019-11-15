@@ -55,7 +55,7 @@ int main(void) {
   // Step 3. Wi-fi Direct OFF
   LOG_VERB("Init Step 3. Wi-fi Direct OFF");
 
-  snprintf(cmdLine, 500, "killall udhcpd");
+  snprintf(cmdLine, 500, "killall udhcpd -q");
   system(cmdLine);
 
   // std::string wpaIntfName("");

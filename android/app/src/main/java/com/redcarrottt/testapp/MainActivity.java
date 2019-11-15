@@ -372,10 +372,47 @@ public class MainActivity extends AppCompatActivity implements LogReceiver.Callb
         }
     }
 
+    private class ImAliveThread extends Thread {
+        private static final String kTag = "Alive";
+        private boolean mIsAlive;
+        private final boolean kVerboseImAliveThread = false;
+        private final int kSleepMillisecs = 500;
+
+        ImAliveThread() {
+            this.mIsAlive = false;
+        }
+
+        @Override
+        public void run() {
+            this.setName("IAmAlive");
+            this.mIsAlive = true;
+            byte[] buf = new byte[10];
+            String sending_buf = "ACK"; /* Ack Message */
+
+            while (this.mIsAlive) {
+                int sendSize = API.send(buf,10);
+                try {
+                    Thread.sleep(kSleepMillisecs);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if (kVerboseImAliveThread) {
+                    Logger.DEBUG(kTag, "Send: Size=" + sendSize);
+                }
+            }
+        }
+
+        public void terminate() {
+            this.mIsAlive = false;
+        }
+    }
+
     private class ReceivingThread extends Thread {
         private static final String kTag = "Recv";
         private boolean mIsAlive;
         private final boolean kVerboseReceivingThread = false;
+
+        private boolean mFirstArrive = false;
 
         ReceivingThread() {
             this.mIsAlive = false;
@@ -394,6 +431,11 @@ public class MainActivity extends AppCompatActivity implements LogReceiver.Callb
                 if (kVerboseReceivingThread) {
                     Logger.DEBUG(kTag, "Received: Size=" + receivedLength);
                 }
+//                if(!this.mFirstArrive) {
+//                    this.mFirstArrive = true;
+//                    ImAliveThread imAliveThread = new ImAliveThread();
+//                    imAliveThread.start();
+//                }
             }
         }
 

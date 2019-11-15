@@ -30,12 +30,12 @@ public:
   NMPolicyWfdOnly(void) {
     this->mWFDMode = false;
     this->mIsAppStarted = false;
-
-    this->mFirstAppLaunched = false;
-    this->mRecentAppLaunchTSSec = 0;
-    this->mRecentAppLaunchTSUsec = 0;
   }
   virtual std::string get_stats_string(void);
+  virtual std::string get_name(void) {
+    std::string str("WFD-only");
+    return str;
+  }
   virtual void on_custom_event(std::string &event_description);
   virtual SwitchBehavior decide(const Stats &stats, bool is_increasable,
                                 bool is_decreasable);
@@ -44,12 +44,6 @@ private:
   bool mWFDMode;
 
   bool mIsAppStarted;
-
-  bool mFirstAppLaunched;
-  struct timeval mFirstAppLaunchTS;
-  struct timeval mRecentAppLaunchTS;
-  int mRecentAppLaunchTSSec;
-  int mRecentAppLaunchTSUsec;
 }; /* class NMPolicyWfdOnly */
 } /* namespace sc */
 

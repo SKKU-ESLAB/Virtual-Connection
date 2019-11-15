@@ -28,14 +28,12 @@
 namespace sc {
 class NMPolicyAppManual : public NMPolicy {
 public:
-  NMPolicyAppManual(void) {
-    this->mWFDMode = false;
-
-    this->mFirstAppLaunched = false;
-    this->mRecentAppLaunchTSSec = 0;
-    this->mRecentAppLaunchTSUsec = 0;
-  }
+  NMPolicyAppManual(void) { this->mWFDMode = false; }
   virtual std::string get_stats_string(void);
+  virtual std::string get_name(void) {
+    std::string str("App manual");
+    return str;
+  }
   virtual void on_custom_event(std::string &event_description);
   virtual SwitchBehavior decide(const Stats &stats, bool is_increasable,
                                 bool is_decreasable);
@@ -44,12 +42,6 @@ private:
   bool mWFDMode;
 
   std::string mPresentAppName;
-
-  bool mFirstAppLaunched;
-  struct timeval mFirstAppLaunchTS;
-  struct timeval mRecentAppLaunchTS;
-  int mRecentAppLaunchTSSec;
-  int mRecentAppLaunchTSUsec;
 }; /* class NMPolicyAppManual */
 } /* namespace sc */
 
