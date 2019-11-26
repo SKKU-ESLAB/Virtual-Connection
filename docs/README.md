@@ -4,6 +4,6 @@ There can be some issues when you run selective-connection on your developer boa
 This directory contains some guides to solve those issues.
 
 ## Guides
-* How to install Prerequisites
-* How to address Bluetooth-related issues
-* How to address Wi-fi Direct-related issues
+* [How to install Prerequisites](https://github.com/SKKU-ESLAB/selective-connection/blob/master/docs/Bluetooth-Issues.md)
+* [How to address Bluetooth-related issues](https://github.com/SKKU-ESLAB/selective-connection/blob/master/docs/Bluetooth-Issues.md)
+* [How to address Wi-fi Direct-related issues](https://github.com/SKKU-ESLAB/selective-connection/blob/master/docs/Wi-fi-Direct-Issues.md)
