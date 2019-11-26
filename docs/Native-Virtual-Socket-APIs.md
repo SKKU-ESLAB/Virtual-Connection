@@ -11,7 +11,7 @@
 
 ## Send Custom Events
 * send_custom_event()
-  * Send custom event to selective connection 
+  * Send custom event to selective connection library
   * `void send_custom_event(std::string custom_event)`
 
 ## Preparation
