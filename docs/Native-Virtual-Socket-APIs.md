@@ -9,6 +9,11 @@
   * Receive data from target peer device with any P2P connection
   * `int receive(void **dataBuffer)`
 
+## Send Custom Events
+* send_custom_event()
+  * Send custom event to selective connection 
+  * `void send_custom_event(std::string custom_event)`
+
 ## Preparation
 ### Handling Selective Connection Library
 * start_sc()
