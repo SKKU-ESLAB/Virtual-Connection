@@ -19,9 +19,7 @@ It is tested on Pixel 1 running Android 7.1.
 
 # Prerequisites
 On linux-side, it requires ```bluez``` library(```libbluetooth-dev```), ```wpa_supplicant```, ```wpa_cli``` and ```udhcpd```.
-For more details, refer to [this page](https://github.com/SKKU-ESLAB/selective-connection/issues/5)
+For more details, refer to [this page](https://github.com/SKKU-ESLAB/selective-connection/blob/master/docs/How-to-Install-Prerequisites.md)
 
-# Detailed Manuals
-* [How to install Prerequisites](https://github.com/SKKU-ESLAB/selective-connection/issues/5)
-* [How to address Bluetooth-related issues](https://github.com/SKKU-ESLAB/selective-connection/issues/2)
-* [How to address Wi-fi Direct-related issues](https://github.com/SKKU-ESLAB/selective-connection/issues/3)
+# Documentations
+[Selective Connection Documentations](https://github.com/SKKU-ESLAB/selective-connection/tree/master/docs)
