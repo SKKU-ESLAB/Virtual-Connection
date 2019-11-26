@@ -8,7 +8,7 @@ This directory contains some guides to solve those issues.
 * [How to install Prerequisites](https://github.com/SKKU-ESLAB/selective-connection/blob/master/docs/Bluetooth-Issues.md)
 * APIs and Interfaces
   * [Virtual Socket APIs (Native C++)](https://github.com/SKKU-ESLAB/selective-connection/blob/master/docs/Native-Virtual-Socket-APIs.md)
-  * [Network Adapter Plug-in(Server-side)](https://github.com/SKKU-ESLAB/selective-connection/blob/master/docs/Network-Adapter-Plugin-Interface-Server.md)
+  * [Network Adapter Plug-in Interface(Server-side)](https://github.com/SKKU-ESLAB/selective-connection/blob/master/docs/Network-Adapter-Plugin-Interface-Server.md)
   * [Network Selection Policy Plug-in Interface](https://github.com/SKKU-ESLAB/selective-connection/blob/master/docs/Network-Selection-Policy-Plugin-Interface.md)
 * Trouble-shooting
   * [How to address Bluetooth-related issues](https://github.com/SKKU-ESLAB/selective-connection/blob/master/docs/Bluetooth-Issues.md)
