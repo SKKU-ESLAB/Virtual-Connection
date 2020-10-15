@@ -1,5 +1,5 @@
-# Selective Connection
-Selective Connection is a framework for abstraction of P2P communications (Wi-fi Direct, Bluetooth, Bluetooth LE, etc.)
+# Virtual Connection
+Virtual Connection is a framework for abstraction of P2P communications (Wi-fi Direct, Bluetooth, Bluetooth LE, etc.)
 
 # Quick Start
 Selective Connection is composed of Linux-side and Android-side programs.
