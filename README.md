@@ -23,3 +23,6 @@ For more details, refer to [this page](https://github.com/SKKU-ESLAB/selective-c
 
 # Documentations
 [Selective Connection Documentations](https://github.com/SKKU-ESLAB/selective-connection/tree/master/docs)
+
+# Publication
+* Gyeonghwan Hong, Dongkun Shin, "Virtual Connection: Selective Connection System for Energy-Efﬁcient Wearable Consumer Electronics", Nov. 2020, Early Access, IEEE Transactions on Consumer Electronics: [Link](https://ieeexplore.ieee.org/document/9247261)
